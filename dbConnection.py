@@ -24,8 +24,11 @@ class MysqlConn(object):
         self._cursor.execute('SET character_set_connection=utf8mb4')
         print(sys.getdefaultencoding())
 
-    def insertOne(self, sql, value):
-        self._cursor.execute(sql, value)
+    def insertOne(self, sql, value=None):
+        if value is None:
+            self._cursor.execute(sql)
+        else:
+            self._cursor.execute(sql, value)
 
         #return count
 
@@ -34,11 +37,11 @@ class MysqlConn(object):
             count = self._cursor.execute(sql)
         else:
             count = self._cursor.execute(sql, param)
-        if count > 0:
-            result = self._cursor.fetchall()
-        else:
-            resutl = False
-        return result
+#         if count > 0:
+#             result = self._cursor.fetchall()
+#         else:
+#             resutl = False
+        return count
     
     def getProcAll(self, proc):
 
