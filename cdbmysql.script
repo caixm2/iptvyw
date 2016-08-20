@@ -98,6 +98,29 @@ CREATE TABLE `iptvyw01`.`tmp_tztehmsbf` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
 
+CREATE TABLE `iptvyw01`.`tztehmsbf` (
+  `hmsname` VARCHAR(50) NOT NULL COMMENT '网元位置，节点名字',
+  `livenum` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'live单播用户数，默认值为0。',
+  `livebandwidth` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'live单播流量，单位kbps。',
+  `vodnum` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'vod点播用户数，默认值为0。',
+  `vodbandwidth` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'vod点播流量，单位kbps，默认值为0。',
+  `tvodnum` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'tvod回看用户数，默认值为0。',
+  `tvodbandwidth` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'tvod回看流量，单位kbps，默认值为0。',
+  `tstvnum` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'tstv时移用户数，默认值为0。',
+  `tstvbandwidth` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'tstv时移流量，单位kbps，默认值为0。',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
 CREATE TABLE `iptvyw01`.`tmp_tztedbkj` (
   `seqnum` INT UNSIGNED COMMENT '序号',
   `starttime` DATETIME NOT NULL COMMENT '开始时间',
@@ -118,6 +141,46 @@ CREATE TABLE `iptvyw01`.`tmp_tztedbkj` (
   `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tztedbkj` (
+  `hmsname` VARCHAR(50) NOT NULL COMMENT '网元位置，节点名字',
+  `dbsjkj` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点磁阵总空间，默认值为0，单位MB。',
+  `dbsykj` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点磁阵使用空间，默认值为0，单位MB',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tztesheji` (
+  `nodename` VARCHAR(50) NOT NULL COMMENT '数据库中POP点名字',
+  `wgname` VARCHAR(50) NOT NULL COMMENT '网管中POP点名字',
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'EPG分组中POP点名字',
+  `sjkyll` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '可研设计流量，默认值为0。单位Gbps。',
+  `sjjdll` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际的设计流量，默认值为0。单位Gbps。',
+  `sjhmsbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '流媒体实际的设计点播用户数，默认值为0。',
+  `sjepgbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'EPG实际的设计用户数，默认值为0。',
+  `sjdbkj` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '存储实际的设计空间，单位TB，默认值为0。',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
 
 CREATE PROCEDURE dbInsertTmp_tztedbkj
 INSERT INTO tmp_tztedbkj
