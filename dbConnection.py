@@ -10,7 +10,7 @@ def modelName():
 
 class MysqlConn(object):
     host = '127.0.0.1'
-    port = 3306
+    port = 56306
     user = 'caixiaoming'
     pwd = 'toor'
     db = 'iptvyw01'
@@ -37,11 +37,11 @@ class MysqlConn(object):
             count = self._cursor.execute(sql)
         else:
             count = self._cursor.execute(sql, param)
-#         if count > 0:
-#             result = self._cursor.fetchall()
-#         else:
-#             resutl = False
-        return count
+        if count > 0:
+            res = self._cursor.fetchall()
+        else:
+            res = False
+        return res
     
     def getProcAll(self, proc):
 

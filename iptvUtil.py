@@ -13,7 +13,7 @@ class IptvUtil(object):
         
         
     def formatHead(self):
-        formathead = workbook.add_format()
+        formathead = self._workbook.add_format()
         formathead.set_bold(3)
         formathead.set_align('center')
         formathead.set_align('vcenter')
@@ -29,14 +29,37 @@ class IptvUtil(object):
         #return self._formattitle
 
     def formatCell(self):
-        formatcell = workbook.add_format()
+        formatcell = self._workbook.add_format()
         formatcell.set_border(1)
         formatcell.set_align('center')
         formatcell.set_align('vcenter')
         return formatcell
+    
+    def formatRed(self):
+        formatred = self._workbook.add_format({'bg_color': '#FFC7CE'})
+        return formatred
+    
+    def formatYellow(self):
+        formatyellow = self._workbook.add_format({'bg_color': '#FFD700'})
+        return formatyellow
+    
+    def formatColwidth(self, col, head, formatH):
+        self._worksheet.merge_range(0,0,0, col - 1,head, formatH)
+        self._worksheet.set_row(0, 30)
+        self._worksheet.set_column(0, col - 1, 20)
+    
+    def formatConditional(self, rowcol, criteria, value, formatColor):
+        self._worksheet.conditional_format(rowcol, {
+                                            'type':    'cell',
+                                            'criteria': criteria,
+                                            'value':     value,
+                                            'format':    formatColor})
 
     def writerow(self, row, col, celltext):
-        self._worksheet.write_row(row, col, celltext, self.formatTitle())
+        self._worksheet.write_row(row, col, celltext, self.formatCell())
+        
+    def mergerange(self, row1, col1, row2, col2):
+        self._worksheet.merge_range(row1, col1, row2, col2, '')
         
     def calc(self, numbers):
         sum = 0

@@ -162,12 +162,14 @@ CREATE TABLE `iptvyw01`.`tztedbkj` (
 CREATE TABLE `iptvyw01`.`tztesheji` (
   `nodename` VARCHAR(50) NOT NULL COMMENT '数据库中POP点名字',
   `wgname` VARCHAR(50) NOT NULL COMMENT '网管中POP点名字',
-  `epgname` VARCHAR(50) NOT NULL COMMENT 'EPG分组中POP点名字',
+  `epggroupname` VARCHAR(50) NOT NULL COMMENT 'EPG分组中POP点名字',
   `sjkyll` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '可研设计流量，默认值为0。单位Gbps。',
   `sjjdll` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际的设计流量，默认值为0。单位Gbps。',
   `sjhmsbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '流媒体实际的设计点播用户数，默认值为0。',
   `sjepgbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'EPG实际的设计用户数，默认值为0。',
   `sjdbkj` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '存储实际的设计空间，单位TB，默认值为0。',
+  `nodeid` VARCHAR(50) NOT NULL COMMENT '数据库中POP点ID',
+  `nodecluster` VARCHAR(50) NOT NULL COMMENT '数据库中POP点分组ID',
   `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
   `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
   `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
@@ -181,8 +183,71 @@ CREATE TABLE `iptvyw01`.`tztesheji` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
 
+ALTER TABLE `iptvyw01`.`tztesheji` 
+CHANGE COLUMN `epgname` `epggroupname` VARCHAR(50) NOT NULL COMMENT 'EPG分组中POP点名字' ;
+
+load data local infile '/home/caixiaoming/iptvyw01/tztesheji.csv' replace into table tztesheji character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+
+CREATE TABLE `iptvyw01`.`tmp_tzteepgbf` (
+  `epgdate` DATE NOT NULL COMMENT 'epg并发日期',
+  `epgtime` VARCHAR(30) NOT NULL COMMENT 'epg并发时间',
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'POP点EPG名字',
+  `epgbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'epg实际并发',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tzteepgbf` (
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'POP点EPG名字',
+  `epgbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'epg实际并发',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tzteepggrpsvr` (
+  `epggroupid` INT NOT NULL DEFAULT 0 COMMENT 'EPG分组ID',
+  `epggroupname` VARCHAR(50) NOT NULL COMMENT 'EPG分组名字',
+  `epgterminalid` INT NOT NULL DEFAULT 0 COMMENT 'EPG名字ID',
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'EPG名字',
+  `epgipaddr` VARCHAR(30) NOT NULL COMMENT 'EPG IP地址',
+  `epgmaxnum` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'EPG最大并发数(个)',
+  `epgstatus` VARCHAR(30) NOT NULL DEFAULT 2 COMMENT 'EPG状态',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+load data local infile '/home/caixiaoming/iptvyw01/tzteepggrpsvr.csv' replace into table tzteepggrpsvr character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 CREATE PROCEDURE dbInsertTmp_tztedbkj
 INSERT INTO tmp_tztedbkj
 (seqnum, starttime, endtime, qryinterval, hmsname, dbsjkj, dbsykj)  
 VALUES(%s, %s, %s, %s, %s, %s, %s);
+
+FLUSH TABLES WITH READ LOCK;FLUSH LOGS; SET GLOBAL binlog_format = 'MIXED'; FLUSH LOGS; UNLOCK TABLES;
