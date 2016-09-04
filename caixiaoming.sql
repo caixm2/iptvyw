@@ -239,13 +239,15 @@ TITLE = ['节点','设计带宽(Gbps)','输出带宽(Gbps)','输出带宽占比(
 select sj.nodename,ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum), 2) as avgwidth,
        sj.sjjdll, ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024, 2) AS bandwidthGbps, 
        ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024/sj.sjjdll*100,0) AS bandper,
-       sj.sjepgbf, sj.sjepgbf, round(sj.sjepgbf/sj.sjepgbf*100,0) as epgper,
+--       sj.sjepgbf, sj.sjepgbf, round(sj.sjepgbf/sj.sjepgbf*100,0) as epgper,
+       epg.epggrpmaxnum, epg.epggrpbf, round(epg.epggrpbf/epg.epggrpmaxnum*100,0) as epgper,
        sj.sjhmsbf, hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum AS hmsbf, 
 	   round((hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum)/sj.sjhmsbf*100,0) AS hmsper,
        sj.sjdbkj/1024/1024, db.dbsykj/1024/1024, round(db.dbsykj/sj.sjdbkj*100, 0) as dbper
-from tztehmsbf hms, tztedbkj db, tztesheji sj
+from tztehmsbf hms, tztedbkj db, tztesheji sj, vzteepggrpbf epg
 where hms.hmsname = sj.wgname
 and   db.hmsname = sj.wgname
+and   epg.epggrpname = sj.epggroupname
 and   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
 and   unix_timestamp(db.createtime) > unix_timestamp(current_date())
 order by sj.nodecluster, sj.nodename;
@@ -270,12 +272,18 @@ SELECT epgname, MAX(epgbf), NOW(), USER(), USER()
 FROM tmp_tzteepgbf epg
 GROUP BY epgname;
 
-select grp.epggroupname, sum(grp.epgmaxnum), sum(bf.epgbf)
-from tzteepggrpsvr grp, tzteepgbf bf
-where grp.epgname = bf.epgname
-group by grp.epggroupname
-order by grp.epggroupid;
+drop view vzteepggrpbf;
+CREATE SQL SECURITY INVOKER VIEW vzteepggrpbf
+AS SELECT grp.epggroupname AS epggrpname, SUM(grp.epgmaxnum) AS epggrpmaxnum, SUM(bf.epgbf) AS epggrpbf
+FROM tzteepggrpsvr grp, tzteepgbf bf
+WHERE grp.epgname = bf.epgname
+and unix_timestamp(bf.createtime) > unix_timestamp(current_date())
+GROUP BY grp.epggroupname
+ORDER BY grp.epggroupid;
 
+select * from vzteepggrpbf;
+
+select * from tzteepgbf;
 
 
 select count(*) from tmp_tzteepgbf;

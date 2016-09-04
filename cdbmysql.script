@@ -250,4 +250,6 @@ INSERT INTO tmp_tztedbkj
 (seqnum, starttime, endtime, qryinterval, hmsname, dbsjkj, dbsykj)  
 VALUES(%s, %s, %s, %s, %s, %s, %s);
 
+create sql security invoker view
+
 FLUSH TABLES WITH READ LOCK;FLUSH LOGS; SET GLOBAL binlog_format = 'MIXED'; FLUSH LOGS; UNLOCK TABLES;

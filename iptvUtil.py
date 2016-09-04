@@ -2,6 +2,7 @@
 
 from datetime import timedelta, date
 import zipfile, os, sys, xlsxwriter
+from glob import glob
 
 class IptvUtil(object):
     def __init__(self, xlsxfilename, xlsxsheetname):
@@ -67,13 +68,39 @@ class IptvUtil(object):
             sum += n*n
         return sum
 
-    def getYesterday(self):
-        yesterday = date.today() - timedelta(days = 1)
+    def getYesterday(self, minusDay = 1):
+        yesterday = date.today() - timedelta(days = minusDay)
         return yesterday
 
     def sliceList(self, L , pos = 1):
         return L[pos:]
     #password = 'JxP#Q9z'
+    def search_file(self, file_name, search_path, pathsep = os.pathsep):
+#         print(search_path)
+#         print(search_path.split(pathsep)) 
+#         for path in search_path.split(pathsep): 
+#  
+#             print(os.pathsep)
+#             print(path)
+#             print(file_name)
+#             candidate = os.path.join(path, file_name) 
+#             print(str(candidate))
+#             if os.path.isfile(candidate): 
+#                 return os.path.abspath(candidate) 
+#         return None
+
+        for path in search_path.split(os.pathsep):
+            print('match1' + file_name)
+            for match in glob(os.path.join(path, str(file_name))):
+                print('match ' + match)
+                if match:
+                    return match
+            return None
+
+
+    def findfile(self, start, name):
+        pass
+    
     def unzipfile(self, zip_file, output_dir, password=None):
         f_zip = zipfile.ZipFile(zip_file, 'r', )
         if password is None:
@@ -91,16 +118,18 @@ class IptvUtil(object):
 
 
 if __name__ == "__main__":
-    print(calc([1,2,3]))
+#    print(calc([1,2,3]))
+    util = IptvUtil('/output/dRpt/中兴并发日报', '中兴并发')
+    s = str(util.getYesterday(0)).replace('-','')
     
-    print(getYesterday())
-    
-    print(sliceList( ['1', '2', '3', '4', '5'], 2))
-    
-    try:
-        #unzipfile('/home/caixiaoming/workspace/iptvyw/cacti/ShangHai_Telecom_Cacti3.0_iptv_check_2016-03-31.zip', './2016-03-31/')
-        unzipfile('./cacti/ShangHai_Telecom_Cacti3.0_iptv_check_2016-03-31.zip', './2016-03-31/')
-    except Exception as e:
-        print('unzipfile error',e)
+    print(s)
+#     
+#     print(sliceList( ['1', '2', '3', '4', '5'], 2))
+#     
+#     try:
+#         #unzipfile('/home/caixiaoming/workspace/iptvyw/cacti/ShangHai_Telecom_Cacti3.0_iptv_check_2016-03-31.zip', './2016-03-31/')
+#         unzipfile('./cacti/ShangHai_Telecom_Cacti3.0_iptv_check_2016-03-31.zip', './2016-03-31/')
+#     except Exception as e:
+#         print('unzipfile error',e)
         
         
