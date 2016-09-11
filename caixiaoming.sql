@@ -237,35 +237,63 @@ TITLE = ['节点','设计带宽(Gbps)','输出带宽(Gbps)','输出带宽占比(
            '区域流媒体总并发合计(个)','区域流媒体峰值并发合计(个)','区域流媒体并发率(%)',
            '区域空间合计(T)', '区域使用空间合计(T)','区域空间使用率(%)']
 select sj.nodename,ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum), 2) as avgwidth,
-       sj.sjjdll, ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024, 2) AS bandwidthGbps, 
-       ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024/sj.sjjdll*100,0) AS bandper,
---       sj.sjepgbf, sj.sjepgbf, round(sj.sjepgbf/sj.sjepgbf*100,0) as epgper,
+       round(sj.sjjdll/1024,0) jdll, ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024, 2) AS bandwidthGbps, 
+       ROUND((hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024/(sj.sjjdll/1024)*100,0) AS bandper,
        epg.epggrpmaxnum, epg.epggrpbf, round(epg.epggrpbf/epg.epggrpmaxnum*100,0) as epgper,
        sj.sjhmsbf, hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum AS hmsbf, 
 	   round((hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum)/sj.sjhmsbf*100,0) AS hmsper,
-       sj.sjdbkj/1024/1024, db.dbsykj/1024/1024, round(db.dbsykj/sj.sjdbkj*100, 0) as dbper
-from tztehmsbf hms, tztedbkj db, tztesheji sj, vzteepggrpbf epg
-where hms.hmsname = sj.wgname
-and   db.hmsname = sj.wgname
-and   epg.epggrpname = sj.epggroupname
-and   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
+       round(sj.sjdbkj/1024/1024, 0) AS dbkj, round(db.dbsykj/1024/1024, 0) AS sykj, round(db.dbsykj/sj.sjdbkj*100, 0) as dbper
+from tztesheji sj 
+left join  tztehmsbf hms
+on   sj.wgname = hms.hmsname
+left join tztedbkj db
+on   sj.wgname = db.hmsname
+left join vzteepggrpbf epg
+on   sj.epggroupname = epg.epggrpname
+where   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
 and   unix_timestamp(db.createtime) > unix_timestamp(current_date())
-order by sj.nodecluster, sj.nodename;
+order by sj.clusterid, sj.nodename;
+
+from thwtongji t1 right join thwtongji t2
+on t1.popid = t2.upid and t2.popid != 2 and t2.popid != 62
+left join vhwethToday t3
+on t2.jiedian = t3.sjiedian
+left join thwsheji t4
+on t2.jiedian = t4.jiedian
+
+select *
+from tztesheji sj 
+left join  tztehmsbf hms
+on   sj.wgname = hms.hmsname
+left join tztedbkj db
+on   sj.wgname = db.hmsname
+left join vzteepggrpbf epg
+on   sj.epggroupname = epg.epggrpname
+where   (unix_timestamp(hms.createtime) > unix_timestamp(current_date()) or hms.createtime is null)
+and   (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)
+;  
+;
+select * from tztesheji sj, vzteepggrpbf epg where sj.epggroupname = epg.epggrpname;
+select * from vzteepggrpbf;
 
 select count(sj.nodename) as countsum, ROUND(sum(hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/sum(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum), 2) as avgwidth,
-       sum(sj.sjjdll), ROUND(sum(hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024, 2) AS bandwidthGbps, 
+       round(sum(sj.sjjdll)/1024, 0) AS jdllsum, ROUND(sum(hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024, 2) AS bandwidthGbps, 
        ROUND(sum(hms.livebandwidth + hms.vodbandwidth + hms.tvodbandwidth + hms.tstvbandwidth)/1024/1024/sum(sj.sjjdll)*100,0) AS bandper,
-       sum(sj.sjepgbf), sum(sj.sjepgbf), round(sum(sj.sjepgbf)/sum(sj.sjepgbf)*100,0) as epgper,
+       sum(epg.epggrpmaxnum), sum(epg.epggrpbf), round(sum(epg.epggrpbf)/sum(epg.epggrpmaxnum)*100,0) as epgper,
        sum(sj.sjhmsbf), sum(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum) AS hmsbf, 
 	   round(sum(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum)/sum(sj.sjhmsbf)*100,0) AS hmsper,
-       sum(sj.sjdbkj)/1024/1024, sum(db.dbsykj)/1024/1024, round(sum(db.dbsykj)/sum(sj.sjdbkj)*100, 0) as dbper
-from tztehmsbf hms, tztedbkj db, tztesheji sj
-where hms.hmsname = sj.wgname
-and   db.hmsname = sj.wgname
-and   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
+       round(sum(sj.sjdbkj)/1024/1024, 0) AS dbkjsum, round(sum(db.dbsykj)/1024/1024, 0) AS sykjsum, round(sum(db.dbsykj)/sum(sj.sjdbkj)*100, 0) as dbper
+from tztesheji sj 
+left join  tztehmsbf hms
+on   sj.wgname = hms.hmsname
+left join tztedbkj db
+on   sj.wgname = db.hmsname
+left join vzteepggrpbf epg
+on   sj.epggroupname = epg.epggrpname
+where   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
 and   unix_timestamp(db.createtime) > unix_timestamp(current_date())
-group by sj.nodecluster
-order by sj.nodecluster, sj.nodename;
+group by sj.clusterid
+order by sj.clusterid, sj.nodename;
 
 INSERT INTO tzteepgbf(epgname, epgbf, updatetime, createowner, updateowner)
 SELECT epgname, MAX(epgbf), NOW(), USER(), USER()
@@ -285,6 +313,13 @@ select * from vzteepggrpbf;
 
 select * from tzteepgbf;
 
+delete from tzteepgbf
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tztedbkj
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tztehmsbf
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+commit;
 
 select count(*) from tmp_tzteepgbf;
 
