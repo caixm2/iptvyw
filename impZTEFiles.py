@@ -270,14 +270,14 @@ if __name__ == "__main__":
                 tvutil.writerow(firstrow, col, res[1:len(res)])
                 row += 1
          
-        tvutil.formatConditional('E3:E90', '>=', 90, tvutil.formatRed())
-        tvutil.formatConditional('E3:E90', '<=', 20, tvutil.formatYellow())
-        tvutil.formatConditional('H3:H90', '>=', 90, tvutil.formatRed())
-        tvutil.formatConditional('H3:H90', '<=', 20, tvutil.formatYellow())
-        tvutil.formatConditional('K3:K90', '>=', 90, tvutil.formatRed())
-        tvutil.formatConditional('K3:K90', '<=', 20, tvutil.formatYellow())
-        tvutil.formatConditional('N3:N90', '>=', 90, tvutil.formatRed())
-        tvutil.formatConditional('N3:N90', '<=', 20, tvutil.formatYellow())
+        tvutil.formatConditional('E3:E95', '>=', 90, tvutil.formatRed())
+        tvutil.formatConditional('E3:E95', '<=', 20, tvutil.formatYellow())
+        tvutil.formatConditional('H3:H95', '>=', 90, tvutil.formatRed())
+        tvutil.formatConditional('H3:H95', '<=', 20, tvutil.formatYellow())
+        tvutil.formatConditional('K3:K95', '>=', 90, tvutil.formatRed())
+        tvutil.formatConditional('K3:K95', '<=', 20, tvutil.formatYellow())
+        tvutil.formatConditional('N3:N95', '>=', 90, tvutil.formatRed())
+        tvutil.formatConditional('N3:N95', '<=', 20, tvutil.formatYellow())
          
         tvutil.formatColwidth(27, '中兴并发日报', tvutil.formatHead())
             

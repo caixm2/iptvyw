@@ -253,4 +253,13 @@ VALUES(%s, %s, %s, %s, %s, %s, %s);
 
 create sql security invoker view
 
+drop view vzteepggrpbf;
+CREATE SQL SECURITY INVOKER VIEW vzteepggrpbf
+AS SELECT grp.epggroupname AS epggrpname, SUM(grp.epgmaxnum) AS epggrpmaxnum, SUM(bf.epgbf) AS epggrpbf
+FROM tzteepggrpsvr grp, tzteepgbf bf
+WHERE grp.epgname = bf.epgname
+and unix_timestamp(bf.createtime) > unix_timestamp(current_date())
+GROUP BY grp.epggroupname
+ORDER BY grp.epggroupid;
+
 FLUSH TABLES WITH READ LOCK;FLUSH LOGS; SET GLOBAL binlog_format = 'MIXED'; FLUSH LOGS; UNLOCK TABLES;
