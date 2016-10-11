@@ -62,6 +62,9 @@ class IptvUtil(object):
     def mergerange(self, row1, col1, row2, col2):
         self._worksheet.merge_range(row1, col1, row2, col2, '')
         
+    def freezecell(self, cellposition= 'B3'):
+        self._worksheet.freeze_panes(cellposition)
+        
     def calc(self, numbers):
         sum = 0
         for n in numbers:
@@ -76,19 +79,6 @@ class IptvUtil(object):
         return L[pos:]
     #password = 'JxP#Q9z'
     def search_file(self, file_name, search_path, pathsep = os.pathsep):
-#         print(search_path)
-#         print(search_path.split(pathsep)) 
-#         for path in search_path.split(pathsep): 
-#  
-#             print(os.pathsep)
-#             print(path)
-#             print(file_name)
-#             candidate = os.path.join(path, file_name) 
-#             print(str(candidate))
-#             if os.path.isfile(candidate): 
-#                 return os.path.abspath(candidate) 
-#         return None
-
         for path in search_path.split(os.pathsep):
             print('match1' + file_name)
             for match in glob(os.path.join(path, str(file_name))):
@@ -98,8 +88,11 @@ class IptvUtil(object):
             return None
 
 
-    def findfile(self, start, name):
-        pass
+    def isExistFile(self, filename):
+        if os.path.exists(filename):
+            return True
+        else:
+            return False
     
     def unzipfile(self, zip_file, output_dir, password=None):
         f_zip = zipfile.ZipFile(zip_file, 'r', )

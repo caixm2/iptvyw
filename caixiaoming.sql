@@ -250,8 +250,8 @@ left join tztedbkj db
 on   sj.wgname = db.hmsname
 left join vzteepggrpbf epg
 on   sj.epggroupname = epg.epggrpname
-where   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
-and   unix_timestamp(db.createtime) > unix_timestamp(current_date())
+where   (unix_timestamp(hms.createtime) > unix_timestamp(current_date()) or hms.createtime is null)
+and   (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)
 order by sj.clusterid, sj.nodename;
 
 from thwtongji t1 right join thwtongji t2
@@ -290,8 +290,8 @@ left join tztedbkj db
 on   sj.wgname = db.hmsname
 left join vzteepggrpbf epg
 on   sj.epggroupname = epg.epggrpname
-where   unix_timestamp(hms.createtime) > unix_timestamp(current_date())
-and   unix_timestamp(db.createtime) > unix_timestamp(current_date())
+where   (unix_timestamp(hms.createtime) > unix_timestamp(current_date()) or hms.createtime is null)
+and   (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)
 group by sj.clusterid
 order by sj.clusterid, sj.nodename;
 
@@ -324,3 +324,94 @@ commit;
 select count(*) from tmp_tzteepgbf;
 
 select * from tztesheji;
+
+truncate table tfhhmsbf;
+truncate table tfhepgbf;
+truncate table tfhdbspace;
+
+select * from tfhepgbf;
+SELECT * FROM tfhhmsbf;
+select * from tfhdbspace;
+
+select * from tmp_tfhepgbf;
+select * from tmp_tfhhmsbf;
+select * from tmp_tfhdbspace;
+
+SELECT sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwdith, sj.sjjdll, 
+       ROUND(SUM(hms.maxoutput),0) maxoutput, 
+       ROUND(SUM(hms.maxoutput)/sj.sjjdll*100,0) outputper,
+       sj.sjjdbf, SUM(hms.maxhmsbf) hmsbf, ROUND(SUM(hms.maxhmsbf)/sj.sjjdbf*100, 0) bfper,
+       sj.sjdbkj, ROUND(db.usedspace/1024/1024, 0) useddb, 
+       ROUND(db.usedspace/1024/1024/sjdbkj*100, 0) dbper,
+       #(case hms.cpname when '4K' then round(hms.maxoutput, 0) else 0 end) 4K, 
+       (case hms.cpname when '芒果tv' then round(hms.maxoutput, 0) else 0 end) 芒果tv,
+       (case hms.cpname when '优酷土豆' then round(hms.maxoutput, 0) else 0 end) 优酷土豆,
+       (case hms.cpname when '百视通回源' then round(hms.maxoutput, 0) else 0 end) 百视通回源,
+       (case hms.cpname when '测速' then round(hms.maxoutput, 0) else 0 end) 测速
+FROM tfhsheji sj 
+LEFT JOIN tfhhmsbf hms
+ON sj.nodeEname = hms.nodeEname
+LEFT JOIN tfhdbspace db
+ON sj.nodeEname = db.nodeEname
+WHERE sj.nodeCname <> '高生节点'
+GROUP BY sj.nodeCname
+ORDER BY sj.nodeCname;
+
+select epgsj.epgname epgname, sum(epgsj.epgsjbf) epgsj, sum(epgbf.epgmaxbf) epgbf,
+	   round(sum(epgbf.epgmaxbf)/sum(epgsj.epgsjbf)*100, 0) epgper
+from tfhepgsheji epgsj, tfhepgbf epgbf
+where epgsj.epgip = epgbf.epgip
+group by epgsj.epgname
+order by epgsj.epgname;
+
+select distinct cpname from tfhhmsbf;
+
+select *
+from tfhhmsbf hms, (select distinct cpname from tfhhmsbf) cp
+where hms.cpname = cp.cpname;
+
+select nodeEname, (case cpname when '4K' then round(maxoutput,0) else 0 end) 4K 
+from tfhhmsbf;
+
+SELECT sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwdith, sj.sjjdll, 
+       ROUND(SUM(hms.maxoutput),0) maxoutput, 
+       ROUND(SUM(hms.maxoutput)/sj.sjjdll*100,0) outputper,
+       sj.sjjdbf, SUM(hms.maxhmsbf) hmsbf, ROUND(SUM(hms.maxhmsbf)/sj.sjjdbf*100, 0) bfper,
+       sj.sjdbkj, ROUND(db.usedspace/1024/1024, 0) useddb, 
+       ROUND(db.usedspace/1024/1024/sjdbkj*100, 0) dbper,
+       sum(if (hms.cpname = "芒果tv", round(hms.maxoutput, 0), 0)) as mangguo,
+       ROUND(sum(if (hms.cpname = '芒果tv', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS mangguoPer,
+       sum(if (hms.cpname = '4K' , round(hms.maxoutput, 0) , 0)) 4K, 
+       ROUND(sum(if (hms.cpname = '4K', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS 4KPer,
+       sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0)) youku,
+       ROUND(sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS youkuPer,
+       sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0)) bestvsrc,
+       ROUND(sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS bestvsrcPer,
+       sum(if (hms.cpname = '测速', round(hms.maxoutput, 0), 0)) cesu,
+       ROUND(sum(if (hms.cpname = '测速', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS cesuPer,
+       sum(if (hms.cpname = 'bobo', round(hms.maxoutput, 0), 0)) bobo,
+       ROUND(sum(if (hms.cpname = 'bobo', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS boboPer,
+       sum(if (hms.cpname = '天翼视讯', round(hms.maxoutput, 0), 0)) tianyi,
+       ROUND(sum(if (hms.cpname = '天翼视讯', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS tianyiPer,
+       sum(if (hms.cpname = '教育中心', round(hms.maxoutput, 0), 0)) jiayu,
+       ROUND(sum(if (hms.cpname = '教育中心', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS jiaoyuPer,
+       sum(if (hms.cpname = '华数', round(hms.maxoutput, 0), 0)) huasu,
+       ROUND(sum(if (hms.cpname = '华数', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS huasuPer,
+       sum(if (hms.cpname = '嘉攸', round(hms.maxoutput, 0), 0)) jiayou,
+       ROUND(sum(if (hms.cpname = '嘉攸', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS jiayouPer,
+       sum(if (hms.cpname = '嘉攸直播', round(hms.maxoutput, 0), 0)) jylive,
+       ROUND(sum(if (hms.cpname = '嘉攸直播', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS jylivePer
+FROM tfhsheji sj 
+LEFT JOIN tfhhmsbf hms
+ON sj.nodeEname = hms.nodeEname
+LEFT JOIN tfhdbspace db
+ON sj.nodeEname = db.nodeEname
+WHERE sj.nodeCname <> '高生节点'
+GROUP BY sj.nodeCname
+ORDER BY sj.nodeCname;
+
+SELECT epgsj.epgname, epgsj.epgsjbf, epgsj.epgip,epgbf.epgmaxbf, ROUND(epgbf.epgmaxbf/epgsj.epgsjbf*100,0)
+FROM tfhepgsheji epgsj, tfhepgbf epgbf
+WHERE epgsj.epgip = epgbf.epgip;
+AND   unix_timestamp(epgbf.createtime) > unix_timestamp(current_date());
+

@@ -280,6 +280,7 @@ if __name__ == "__main__":
         tvutil.formatConditional('N3:N95', '<=', 20, tvutil.formatYellow())
          
         tvutil.formatColwidth(27, '中兴并发日报', tvutil.formatHead())
+        tvutil.freezecell()
             
     except Exception as e:
         conn.rollback()

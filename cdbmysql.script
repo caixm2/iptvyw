@@ -263,3 +263,191 @@ GROUP BY grp.epggroupname
 ORDER BY grp.epggroupid;
 
 FLUSH TABLES WITH READ LOCK;FLUSH LOGS; SET GLOBAL binlog_format = 'MIXED'; FLUSH LOGS; UNLOCK TABLES;
+
+drop table tfhsheji;
+CREATE TABLE `iptvyw01`.`tfhsheji` (
+  `nodearea` VARCHAR(50) NOT NULL COMMENT '节点所有区域',
+  `nodeCname` VARCHAR(50) NOT NULL COMMENT '节点中文名字',
+  `nodeEname` VARCHAR(50) NOT NULL COMMENT '节点英文名字',
+  `nodeid` VARCHAR(50) COMMENT '节点ID',
+  `sjkyll` INT(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT '可研设计流量，默认值为1。单位Mbps。',
+  `sjjdll` INT(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT '实际的设计流量，默认值为1。单位Mbps。',
+  `sjjdbf` INT(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT '流媒体实际的设计点播用户数，默认值为1。',
+  `sjdbkj` INT(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT '存储实际的设计空间，单位TB，默认值为1。',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tfhepgsheji` (
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'epg服务器名字',
+  `epgip` VARCHAR(50) NOT NULL COMMENT 'epg服务器IP',
+  `epgsjbf` INT(10) UNSIGNED NOT NULL COMMENT 'epg设计并发',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tfhyewu` (
+  `cpEname` VARCHAR(50) NOT NULL COMMENT 'cp业务名称',
+  `cpname` VARCHAR(50) NOT NULL COMMENT 'cp业务名称',
+  `cptype` VARCHAR(50) NOT NULL COMMENT '业务类型',
+  `connzteflag` VARCHAR(1) NOT NULL COMMENT '是否对接中兴标识，只有是/否2个值',
+  `onlineflag` VARCHAR(1) NOT NULL COMMENT '是否上线标识，只有是/否2个值',
+  `yewurukou` VARCHAR(50) COMMENT '各业务在机顶盒上的入口',
+  `cdntype` VARCHAR(50) COMMENT 'cdn类型，注入或者回源',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+  
+
+CREATE TABLE `iptvyw01`.`tmp_tfhepgbf` (
+  `epgip` VARCHAR(50) NOT NULL COMMENT 'epg服务器IP',
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'epg服务器名字',
+  `epgmaxbf` INT(10) UNSIGNED NOT NULL COMMENT 'epg设计并发',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+ 
+CREATE TABLE `iptvyw01`.`tfhepgbf` (
+  `epgip` VARCHAR(50) NOT NULL COMMENT 'epg服务器IP',
+  `epgname` VARCHAR(50) NOT NULL COMMENT 'epg服务器名字',
+  `epgmaxbf` INT(10) UNSIGNED NOT NULL COMMENT 'epg设计并发',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tmp_tfhhmsbf` (
+  `hmsdatetime` DATETIME NOT NULL COMMENT '峰值并发发生的时间',
+  `nodeEname` VARCHAR(50) NOT NULL COMMENT '节点英文名字',
+  `cpname` VARCHAR(50) NOT NULL COMMENT '业务名称',
+  `maxoutput` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大出流，单位Mbps',
+  `maxinput` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大入流，单位Mbps',
+  `maxhmsbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大并发数',
+  `maxbacksrc` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大并发数',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tfhhmsbf` (
+  `hmsdatetime` DATETIME NOT NULL COMMENT '峰值并发发生的时间',
+  `nodeEname` VARCHAR(50) NOT NULL COMMENT '节点英文名字',
+  `cpname` VARCHAR(50) NOT NULL COMMENT '业务名称',
+  `maxoutput` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大出流，单位Mbps',
+  `maxinput` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大入流，单位Mbps',
+  `maxhmsbf` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大并发数',
+  `maxbacksrc` INT(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT '最大并发数',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tmp_tfhdbspace` (
+  `nodeEname` VARCHAR(50) NOT NULL COMMENT '节点英文名字',
+  `dbdatetime` DATETIME NOT NULL COMMENT '峰值并发发生的时间',
+  `usedspace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用空间，单位MB',
+  `freespace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '剩余空间，单位MB',
+  `totalspace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '总空间空间，单位MB',
+  `usedpercent` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用空间百分比，单位%',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+CREATE TABLE `iptvyw01`.`tfhdbspace` (
+  `nodeEname` VARCHAR(50) NOT NULL COMMENT '节点英文名字',
+  `dbdatetime` DATETIME NOT NULL COMMENT '峰值并发发生的时间',
+  `usedspace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用空间，单位MB',
+  `freespace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '剩余空间，单位MB',
+  `totalspace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '总空间空间，单位MB',
+  `usedpercent` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用空间百分比，单位%',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
+
+truncate table tfhepgsheji;
+load data local infile '/home/caixiaoming/iptvyw01/tfhepgsheji.csv' replace into table tfhepgsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+
+truncate table tfhyewu;
+load data local infile '/home/caixiaoming/iptvyw01/tfhyewu.csv' replace into table tfhyewu character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
+
+truncate table tfhsheji;
+load data local infile '/home/caixiaoming/iptvyw01/tfhsheji.csv' replace into table tfhsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
+
