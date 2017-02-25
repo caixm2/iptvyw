@@ -43,7 +43,8 @@ tmp2hmsbf = "INSERT INTO tfhhmsbf(hmsdatetime, nodeEname, cpname, maxoutput, max
 tmp2hmsbf += "                     updatetime, createowner, updateowner) "
 tmp2hmsbf += " SELECT hmsdatetime, nodeEname, cpname, maxoutput, maxinput, maxhmsbf, NOW(), USER(), USER() "
 tmp2hmsbf += " FROM tmp_tfhhmsbf "
-tmp2hmsbf += " WHERE cpname <> 'ALLSP';"
+#tmp2hmsbf += " WHERE cpname <> 'ALLSP';"
+tmp2hmsbf += "WHERE nodeEname = 'spidAll' or cpname <> 'ALLSP';"
 
 tmp2epgbf = "INSERT INTO tfhepgbf(epgip, epgname, epgmaxbf, updatetime, createowner, updateowner)"
 tmp2epgbf += " SELECT epgip, epgname, epgmaxbf, NOW(), USER(), USER()"
