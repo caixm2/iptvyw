@@ -451,3 +451,28 @@ load data local infile '/home/caixiaoming/iptvyw01/tfhyewu.csv' replace into tab
 truncate table tfhsheji;
 load data local infile '/home/caixiaoming/iptvyw01/tfhsheji.csv' replace into table tfhsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
 
+
+CREATE TABLE `iptvyw01`.`tzteDayRpt` (
+  `ID` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `nodename` VARCHAR(50) NOT NULL COMMENT '节点名字',
+  `avgwidth` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
+  `sjjdll` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '设计节点流量',
+  `dbdatetime` DATETIME NOT NULL COMMENT '峰值并发发生的时间',
+  `usedspace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用空间，单位MB',
+  `freespace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '剩余空间，单位MB',
+  `totalspace` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '总空间空间，单位MB',
+  `usedpercent` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用空间百分比，单位%',
+  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
+  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用。',
+  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
+  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用。',
+  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用。',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0'
+  PRIMARY KEY (`ID`),
+  UNIQUE INDEX `id_UNIQUE` (`ID` ASC));
