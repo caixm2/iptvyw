@@ -1127,7 +1127,8 @@ CREATE TABLE `iptvyw01`.`tfhDayRpt` (
   `dbkjper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
   `mangguoll` float UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
   `mangguoper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
-  
+  ``
+ 
   `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
   `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用',
   `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
