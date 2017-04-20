@@ -1107,28 +1107,43 @@ AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval 
 GROUP BY dr.quju, dr.createtime
 ;
 
-drop table `iptvyw01`.`tfhDayRpt`;
+drop table IF EXISTS `iptvyw01`.`tfhDayRpt`;
 CREATE TABLE `iptvyw01`.`tfhDayRpt` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
   `quju` VARCHAR(50) NOT NULL COMMENT '区局名字',
   `nodeCname` VARCHAR(50) NOT NULL COMMENT '节点名字',
-  `avgwidth` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
-  `sjjdll` float UNSIGNED NOT NULL DEFAULT 1 COMMENT '设计节点流量',
-  `peakjdll` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量',
-  `jdllper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量百分比',
-  `sjjdbf` float UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点流媒体设计并发',
-  `peakjdbf` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发',
-  `jdbfper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发百分比',
-  `sjdbkj` float UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点存储设计空间',
-  `peakdbkj` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间',
-  `dbkjper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
-  `sjdbkj` float UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点存储设计空间',
-  `peakdbkj` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间',
-  `dbkjper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
-  `mangguoll` float UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
-  `mangguoper` float UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
-  ``
- 
+  `avgwidth` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
+  `sjjdll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '设计节点流量',
+  `peakjdll` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量',
+  `jdllper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量百分比',
+  `sjjdbf` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点流媒体设计并发',
+  `peakjdbf` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发',
+  `jdbfper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发百分比',
+  `sjdbkj` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点存储设计空间',
+  `peakdbkj` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间',
+  `dbkjper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
+  `mangguoll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
+  `mangguoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
+  `4Kll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '4K流量',
+  `4Kper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '4K/总流量占比',
+  `youkull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '优酷土豆流量',
+  `youkuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '优酷土豆/总流量占比',
+  `bestvll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
+  `bestvoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
+  `cesull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '测速流量',
+  `cesuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '测速/总流量占比',
+  `boboll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '播播流量',
+  `boboper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '播播/总流量占比',
+  `tianyill` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '天翼视讯流量',
+  `tianyiper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '天翼视讯/总流量占比',
+  `jiaoyull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '教育流量',
+  `jiaoyuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '教育/总流量占比',
+  `huasull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '华数流量',
+  `huasuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '华数/总流量占比',
+  `jiayoull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸流量',
+  `jiayouper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸/总流量占比',
+  `jylivell` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸直播流量',
+  `jyliveper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸直播/总流量占比',
   `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
   `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用',
   `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
@@ -1143,3 +1158,64 @@ CREATE TABLE `iptvyw01`.`tfhDayRpt` (
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
   PRIMARY KEY (`id`),
   UNIQUE INDEX `idx_thwDayRpt_id` (`id` ASC));
+
+DROP PROCEDURE IF EXISTS pfhDayRpt;
+delimiter //
+create procedure pfhDayRpt()
+begin
+INSERT INTO tfhDayRpt (quju, nodeCname, avgwidth, sjjdll, peakjdll, jdllper, 
+  sjjdbf,peakjdbf,jdbfper,sjdbkj,peakdbkj,dbkjper,
+  mangguoll,mangguoper,4Kll,4Kper,youkull,youkuper,bestvll,bestvoper,cesull,cesuper,
+  boboll,boboper,tianyill,tianyiper,jiaoyull,jiaoyuper,huasull,huasuper,
+  jiayoull,jiayouper,jylivell,jyliveper,updatetime, createowner, updateowner
+                      )
+SELECT sj.quju, sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwdith, sj.sjjdll, 
+        ROUND(SUM(hms.maxoutput),0) maxoutput, 
+        ROUND(SUM(hms.maxoutput)/sj.sjjdll*100,0) outputper,
+        sj.sjjdbf, SUM(hms.maxhmsbf) hmsbf, ROUND(SUM(hms.maxhmsbf)/sj.sjjdbf*100, 0) bfper,
+        sj.sjdbkj, ROUND(db.usedspace/1024/1024, 0) useddb, 
+        ROUND(db.usedspace/1024/1024/sjdbkj*100, 0) dbper,
+        sum(if (hms.cpname = '芒果tv', round(hms.maxoutput, 0), 0)) as mangguo,
+        ROUND(sum(if (hms.cpname = '芒果tv', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS mangguoPer,
+        sum(if (hms.cpname = '4K' , round(hms.maxoutput, 0) , 0)) 4K, 
+        ROUND(sum(if (hms.cpname = '4K', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS 4KPer,
+        sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0)) youku,
+        ROUND(sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS youkuPer,
+        sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0)) bestvsrc,
+        ROUND(sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS bestvsrcPer,
+        sum(if (hms.cpname = '测速', round(hms.maxoutput, 0), 0)) cesu,
+        ROUND(sum(if (hms.cpname = '测速', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS cesuPer,
+        sum(if (hms.cpname = 'bobo', round(hms.maxoutput, 0), 0)) bobo,
+        ROUND(sum(if (hms.cpname = 'bobo', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS boboPer,
+        sum(if (hms.cpname = '天翼视讯', round(hms.maxoutput, 0), 0)) tianyi,
+        ROUND(sum(if (hms.cpname = '天翼视讯', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS tianyiPer,
+        sum(if (hms.cpname = '教育中心', round(hms.maxoutput, 0), 0)) jiayu,
+        ROUND(sum(if (hms.cpname = '教育中心', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS jiaoyuPer,
+        sum(if (hms.cpname = '华数', round(hms.maxoutput, 0), 0)) huasu,
+        ROUND(sum(if (hms.cpname = '华数', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS huasuPer,
+        sum(if (hms.cpname = '嘉攸', round(hms.maxoutput, 0), 0)) jiayou,
+        ROUND(sum(if (hms.cpname = '嘉攸', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS jiayouPer,
+        sum(if (hms.cpname = '嘉攸直播', round(hms.maxoutput, 0), 0)) jylive,
+        ROUND(sum(if (hms.cpname = '嘉攸直播', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS jylivePer,
+        NOW(), USER(), USER()
+ FROM tfhsheji sj 
+ LEFT JOIN tfhhmsbf hms
+ ON sj.nodeEname = hms.nodeEname
+ LEFT JOIN tfhdbspace db
+ ON sj.nodeEname = db.nodeEname
+ WHERE sj.nodeCname <> '高生节点'
+ AND    (unix_timestamp(hms.createtime) > unix_timestamp(current_date()) or hms.createtime is null)
+ AND    (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)
+ GROUP BY sj.nodeCname
+ ORDER BY sj.nodeCname;
+
+commit;
+end //
+delimiter ;
+
+DROP event IF EXISTS efhDayRpt;
+CREATE event IF NOT EXISTS efhDayRpt
+  ON SCHEDULE EVERY 1 Day 
+  STARTS '2017-4-22 06:57:00'
+  ON COMPLETION PRESERVE ENABLE
+  DO call pfhDayRpt();
