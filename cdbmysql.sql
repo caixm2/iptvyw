@@ -1098,15 +1098,46 @@ FROM vhwqujuMonthsum
 GROUP BY quju
 ;
 
-CREATE TABLE thwMonRpt AS
+#生成华为月报存储过程
+DROP PROCEDURE IF EXISTS phwMonRpt;
+delimiter //
+CREATE PROCEDURE phwMonRpt()
+BEGIN
+INSERT INTO thwMonRpt(quju, avgwidth, qujusjjdll, jdllmax, jdllper, 
+       qujusjepgbf, epgbfmax, epgbfper, qujusjhmsbf, hmsbfmax, hmsbfper,
+       qujusjdbkj, dbkjmax, dbkjper, updatetime, createowner, updateowner)
 SELECT sj.quju '区局', ROUND(qj.djllmax*1024/qj.hmsbfmax, 2) '平均码流(Mbps)', 
        sj.qujusjjdll '设计流量(Gbps)', qj.djllmax '最大流量(Gbps)', ROUND(qj.djllmax/sj.qujusjjdll*100,0) '流量(%)',
        sj.qujusjepgbf 'EPG设计并发', qj.epgbfmax 'EPG实际最大并发', ROUND(qj.epgbfmax/sj.qujusjepgbf*100, 0) 'EPG(%)',
        sj.qujusjhmsbf '流媒体设计并发', qj.hmsbfmax '流媒体实际最大并发', ROUND(qj.hmsbfmax/sj.qujusjhmsbf*100, 0) '流媒体(%)',
-       sj.qujusjdbkj '设计点播存储空间(T)', sj.qujusjdbkj-qj.dbkjmax '实际最大点播存储空间(T)', ROUND((sj.qujusjdbkj-qj.dbkjmax)/sj.qujusjdbkj*100, 0) '存储空间(%)'
+       sj.qujusjdbkj '设计点播存储空间(T)', qj.dbkjmax '实际最大点播存储空间(T)', ROUND(qj.dbkjmax/sj.qujusjdbkj*100, 0) '存储空间(%)',
+       NOW(), USER(), USER()
 FROM vhwqujusheji sj, vhwqujuMonthmax qj
 WHERE sj.quju = qj.quju
 ;
+COMMIT;
+END //
+delimiter ;
+
+#生成月报定时任务事件
+DROP EVENT IF EXISTS ehwMonRpt;
+CREATE EVENT IF NOT EXISTS ehwMonRpt
+  ON SCHEDULE EVERY 1 MONTH 
+  STARTS '2017-4-24 07:05:00'
+  ON COMPLETION PRESERVE ENABLE
+  DO call phwMonRpt();
+
+#生成华为当月月报数据
+SELECT sj.quju '区局', sj.avgwidth '平均码流(Mbps)', 
+       sj.qujusjjdll '设计流量(Gbps)', sj.jdllmax '最大流量(Gbps)', sj.jdllper '流量(%)',
+       sj.qujusjepgbf 'EPG设计并发', sj.epgbfmax 'EPG实际最大并发', sj.epgbfper 'EPG(%)',
+       sj.qujusjhmsbf '流媒体设计并发', sj.hmsbfmax '流媒体实际最大并发', sj.hmsbfper '流媒体(%)',
+       sj.qujusjdbkj '设计点播存储空间(T)', sj.dbkjmax '实际最大点播存储空间(T)', sj.dbkjper '存储空间(%)',
+       DATE_FORMAT(sj.createtime, '%Y%m') '月份'
+FROM thwMonRpt sj
+WHERE unix_timestamp(sj.createtime) > unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+;
+
 
 烽火平台月度统计
 ##1.得出各个区局的设计流量。
@@ -1126,22 +1157,23 @@ WHERE nodeid  != '23120600'
 GROUP BY quju
 ORDER BY substring_index('浦东,南汇',quju,1); 
 
-#
+#根据烽火日报按天汇总每个区的实际流量
 CREATE OR REPLACE VIEW vfhqujuMonthsum AS
-SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, SUM(dr.peakepgbf) epgbfsum, 
-       SUM(dr.peakhmsbf) hmsbfsum, SUM(dr.peakdbkj) dbkjsum
-FROM thwsheji sj, thwDayRpt dr
-WHERE sj.popid = dr.nodeid
-AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
-AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
-GROUP BY dr.quju, dr.createtime
+SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, 
+       SUM(dr.peakjdbf) hmsbfsum, SUM(dr.peakdbkj) dbkjsum
+FROM tfhsheji sj, tfhDayRpt dr
+WHERE sj.nodeid = dr.nodeid
+#AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
+#AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+GROUP BY DATE_FORMAT(dr.createtime, '%Y%m%d'), dr.quju
 ;
 
 drop table IF EXISTS `iptvyw01`.`tfhDayRpt`;
-CREATE TABLE `iptvyw01`.`tfhDayRpt` (
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhDayRpt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
   `quju` VARCHAR(50) NOT NULL COMMENT '区局名字',
   `nodeCname` VARCHAR(50) NOT NULL COMMENT '节点名字',
+  `nodeid` VARCHAR(50) NOT NULL default '没有匹配' COMMENT '节点ID',
   `avgwidth` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
   `sjjdll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '设计节点流量',
   `peakjdll` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量',
@@ -1174,32 +1206,37 @@ CREATE TABLE `iptvyw01`.`tfhDayRpt` (
   `jiayouper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸/总流量占比',
   `jylivell` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸直播流量',
   `jyliveper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸直播/总流量占比',
-  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
-  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用',
-  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
-  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用',
-  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用',
   `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
   `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
   `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
   `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
   `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
-  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `idx_thwDayRpt_id` (`id` ASC));
+  UNIQUE INDEX `idx_tfhDayRpt_id` (`id` ASC));
+
+#烽火tfhDayRpt添加一列nodeid
+ALTER TABLE `iptvyw01`.`tfhDayRpt` 
+ADD nodeid VARCHAR(50) NOT NULL DEFAULT '没有匹配' 
+COMMENT '节点ID' AFTER nodeCname;
+UPDATE `iptvyw01`.`tfhDayRpt` dr INNER JOIN `iptvyw01`.`tfhsheji` sj 
+ON  sj.nodeCname = dr.nodeCname
+SET dr.nodeid = sj.nodeid;
+
 
 DROP PROCEDURE IF EXISTS pfhDayRpt;
 delimiter //
 create procedure pfhDayRpt()
-begin
-INSERT INTO tfhDayRpt (quju, nodeCname, avgwidth, sjjdll, peakjdll, jdllper, 
+BEGIN
+INSERT INTO tfhDayRpt (quju, nodeCname, nodeid, avgwidth, sjjdll, peakjdll, jdllper, 
   sjjdbf,peakjdbf,jdbfper,sjdbkj,peakdbkj,dbkjper,
   mangguoll,mangguoper,4Kll,4Kper,youkull,youkuper,bestvll,bestvoper,cesull,cesuper,
   boboll,boboper,tianyill,tianyiper,jiaoyull,jiaoyuper,huasull,huasuper,
   jiayoull,jiayouper,jylivell,jyliveper,updatetime, createowner, updateowner
                       )
-SELECT sj.quju, sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwidth, sj.sjjdll, 
+SELECT sj.quju, sj.nodeCname, sj.nodeid, 
+        ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwidth, sj.sjjdll, 
         ROUND(SUM(hms.maxoutput),0) maxoutput, 
         ROUND(SUM(hms.maxoutput)/sj.sjjdll*100,0) outputper,
         sj.sjjdbf, SUM(hms.maxhmsbf) hmsbf, ROUND(SUM(hms.maxhmsbf)/sj.sjjdbf*100, 0) bfper,
@@ -1238,9 +1275,8 @@ SELECT sj.quju, sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgw
  AND    (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)
  GROUP BY sj.nodeCname
  ORDER BY sj.nodeCname;
-
 COMMIT;
-end //
+END //
 delimiter ;
 
 DROP event IF EXISTS efhDayRpt;
@@ -1249,6 +1285,115 @@ CREATE event IF NOT EXISTS efhDayRpt
   STARTS '2017-4-23 06:57:00'
   ON COMPLETION PRESERVE ENABLE
   DO call pfhDayRpt();
+
+#计算烽为平台1个月的最大流量
+CREATE OR REPLACE VIEW vfhqujuMonthsum AS
+SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, SUM(dr.peakjdbf) hmsbfsum, 
+       SUM(dr.peakdbkj) dbkjsum
+FROM tfhsheji sj, tfhDayRpt dr
+WHERE sj.nodeid = dr.nodeid
+AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
+AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+GROUP BY dr.quju, DATE_FORMAT(dr.createtime, '%Y%m%d')
+;
+
+CREATE OR REPLACE VIEW vfhqujuMonthmax AS
+SELECT quju, ROUND(MAX(djllsum), 0) djllmax, MAX(epgbfsum) epgbfmax, MAX(hmsbfsum) hmsbfmax, MAX(dbkjsum) dbkjmax 
+FROM vfhqujuMonthsum 
+GROUP BY quju
+;
+
+drop table IF EXISTS `iptvyw01`.`tfhMonRpt`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `quju` VARCHAR(50) NOT NULL COMMENT '区局名字',
+  `avgwidth` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
+  `qujusjjdll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '设计节点流量',
+  `jdllmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量',
+  `jdllper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量百分比',
+  `qujusjhmsbf` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点流媒体设计并发',
+  `hmsbfmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发',
+  `hmsbfper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发百分比',
+  `qujusjdbkj` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点存储设计空间',
+  `dbkjmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间',
+  `dbkjper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
+  `mangguoll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
+  `mangguoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
+  `4Kll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '4K流量',
+  `4Kper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '4K/总流量占比',
+  `youkull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '优酷土豆流量',
+  `youkuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '优酷土豆/总流量占比',
+  `bestvll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
+  `bestvoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
+  `cesull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '测速流量',
+  `cesuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '测速/总流量占比',
+  `boboll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '播播流量',
+  `boboper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '播播/总流量占比',
+  `tianyill` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '天翼视讯流量',
+  `tianyiper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '天翼视讯/总流量占比',
+  `jiaoyull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '教育流量',
+  `jiaoyuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '教育/总流量占比',
+  `huasull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '华数流量',
+  `huasuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '华数/总流量占比',
+  `jiayoull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸流量',
+  `jiayouper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸/总流量占比',
+  `jylivell` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸直播流量',
+  `jyliveper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸直播/总流量占比',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_tfhDayRpt_id` (`id` ASC))
+  COMMENT '按区局统计一个月烽火平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+#生成烽火平台月报存储过程
+DROP PROCEDURE IF EXISTS pfhMonRpt;
+delimiter //
+CREATE PROCEDURE pfhMonRpt()
+BEGIN
+INSERT INTO tfhMonRpt(quju, avgwidth, qujusjjdll, jdllmax, jdllper, 
+       qujusjhmsbf, hmsbfmax, hmsbfper, qujusjdbkj, dbkjmax, dbkjper,
+
+       updatetime, createowner, updateowner)
+SELECT sj.quju '区局', ROUND(qj.djllmax*1024/qj.hmsbfmax, 2) '平均码流(Mbps)', 
+       sj.qujusjjdll '设计流量(Gbps)', qj.djllmax '最大流量(Gbps)', ROUND(qj.djllmax/sj.qujusjjdll*100,0) '流量(%)',
+       sj.qujusjepgbf 'EPG设计并发', qj.epgbfmax 'EPG实际最大并发', ROUND(qj.epgbfmax/sj.qujusjepgbf*100, 0) 'EPG(%)',
+       sj.qujusjhmsbf '流媒体设计并发', qj.hmsbfmax '流媒体实际最大并发', ROUND(qj.hmsbfmax/sj.qujusjhmsbf*100, 0) '流媒体(%)',
+       sj.qujusjdbkj '设计点播存储空间(T)', qj.dbkjmax '实际最大点播存储空间(T)', ROUND(qj.dbkjmax/sj.qujusjdbkj*100, 0) '存储空间(%)',
+       NOW(), USER(), USER()
+FROM vfhqujusheji sj, vfhqujuMonthmax qj
+WHERE sj.quju = qj.quju
+;
+COMMIT;
+END //
+delimiter ;
+
+#生成月报定时任务事件
+DROP EVENT IF EXISTS ehwMonRpt;
+CREATE EVENT IF NOT EXISTS ehwMonRpt
+  ON SCHEDULE EVERY 1 MONTH 
+  STARTS '2017-4-24 07:05:00'
+  ON COMPLETION PRESERVE ENABLE
+  DO call phwMonRpt();
+
+#生成华为当月月报数据
+SELECT sj.quju '区局', sj.avgwidth '平均码流(Mbps)', 
+       sj.qujusjjdll '设计流量(Gbps)', sj.jdllmax '最大流量(Gbps)', sj.jdllper '流量(%)',
+       sj.qujusjepgbf 'EPG设计并发', sj.epgbfmax 'EPG实际最大并发', sj.epgbfper 'EPG(%)',
+       sj.qujusjhmsbf '流媒体设计并发', sj.hmsbfmax '流媒体实际最大并发', sj.hmsbfper '流媒体(%)',
+       sj.qujusjdbkj '设计点播存储空间(T)', sj.dbkjmax '实际最大点播存储空间(T)', sj.dbkjper '存储空间(%)',
+       DATE_FORMAT(sj.createtime, '%Y%m') '月份'
+FROM thwMonRpt sj
+WHERE unix_timestamp(sj.createtime) > unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+;
+
+
+#生成烽火平台月报
+
 
 DROP TABLE IF EXISTS tzteMonRpt;
 CREATE TABLE `iptvyw01`.`tzteMonRpt` (
@@ -1267,11 +1412,6 @@ CREATE TABLE `iptvyw01`.`tzteMonRpt` (
   `qujusjdbkj` BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '按区局统计节点设计存储空间，含区域节点值(TB)',
   `dbkjmax` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '按区局统计1个月实际节点存储空间最大值(TB)',
   `dbkjper` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际流量/设计流量',
-  `OPT1` VARCHAR(45) NULL COMMENT '备注1，扩充字段使用',
-  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用',
-  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
-  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用',
-  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用',
   `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
   `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
   `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
@@ -1280,4 +1420,34 @@ CREATE TABLE `iptvyw01`.`tzteMonRpt` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表未删除，Y代表删除，默认值N',
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `idx_thwDayRpt_id` (`id` ASC));
+  UNIQUE INDEX `idx_tzteMonRpt_id` (`id` ASC)) 
+  COMMENT '统计一个月中兴平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+#创建华为月报表
+DROP TABLE IF EXISTS thwMonRpt;
+CREATE TABLE `iptvyw01`.`thwMonRpt` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `quju` VARCHAR(50) NOT NULL COMMENT '区局名字',
+  `avgwidth` FLOAT UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)，精确到小数点后2位',
+  `qujusjjdll` BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '按区局统计设计节点流量，含区域节点值(Gbps)',
+  `jdllmax` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '按区局统计1个月实际节点流量最大值(Bbps)',
+  `jdllper` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际流量/设计流量',
+  `qujusjepgbf` BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '按区局统计节点设计EPG并发，含区域节点值',
+  `epgbfmax` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '按区局统计1个月实际节点EPG并发最大值',
+  `epgbfper` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际流量/设计流量',
+  `qujusjhmsbf` BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '按区局统计节点设计流媒体并发，含区域节点值',
+  `hmsbfmax` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '按区局统计1个月实际节点流媒体并发最大值',
+  `hmsbfper` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际流量/设计流量',
+  `qujusjdbkj` BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '按区局统计节点设计存储空间，含区域节点值(TB)',
+  `dbkjmax` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '按区局统计1个月实际节点存储空间最大值(TB)',
+  `dbkjper` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际流量/设计流量',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表未删除，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_thwMonRpt_id` (`id` ASC)) 
+  COMMENT '统计一个月华为平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
