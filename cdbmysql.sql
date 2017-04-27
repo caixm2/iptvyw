@@ -1139,7 +1139,7 @@ WHERE unix_timestamp(sj.createtime) > unix_timestamp(date_add(curdate(), interva
 ;
 
 
-烽火平台月度统计
+#烽火平台月度统计
 ##1.得出各个区局的设计流量。
 ##2.得出1个月各个区局的峰值流量。
 ##3.合并成总体的表格。
@@ -1158,7 +1158,7 @@ GROUP BY quju
 ORDER BY substring_index('浦东,南汇',quju,1); 
 
 #根据烽火日报按天汇总每个区的实际流量
-CREATE OR REPLACE VIEW vfhqujuMonthsum AS
+CREATE OR REPLACE VIEW vfhqujuMonthSum AS
 SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, 
        SUM(dr.peakjdbf) hmsbfsum, SUM(dr.peakdbkj) dbkjsum
 FROM tfhsheji sj, tfhDayRpt dr
@@ -1286,69 +1286,30 @@ CREATE event IF NOT EXISTS efhDayRpt
   ON COMPLETION PRESERVE ENABLE
   DO call pfhDayRpt();
 
-#计算烽为平台1个月的最大流量
+#计算烽为平台前1个月的最大流量
+#日期范围>前1个月的1号，<本月的1号
 CREATE OR REPLACE VIEW vfhqujuMonthsum AS
 SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, SUM(dr.peakjdbf) hmsbfsum, 
-       SUM(dr.peakdbkj) dbkjsum
+        SUM(dr.peakdbkj) dbkjsum, SUM(mangguoll) mangguollsum ,SUM(4Kll) 4Kllsum,
+        SUM(youkull) youkullsum, SUM(bestvll) bestvllsum, SUM(cesull) cesullsum,
+        SUM(boboll) bobollsum, SUM(tianyill) tianyillsum, SUM(jiaoyull) jiaoyullsum,
+        SUM(huasull) huasullsum, SUM(jiayoull) jiayoullsum, SUM(jylivell) jylivellsum
 FROM tfhsheji sj, tfhDayRpt dr
 WHERE sj.nodeid = dr.nodeid
-AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
-AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+#AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
+#AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
 GROUP BY dr.quju, DATE_FORMAT(dr.createtime, '%Y%m%d')
 ;
 
 CREATE OR REPLACE VIEW vfhqujuMonthmax AS
-SELECT quju, ROUND(MAX(djllsum), 0) djllmax, MAX(epgbfsum) epgbfmax, MAX(hmsbfsum) hmsbfmax, MAX(dbkjsum) dbkjmax 
+SELECT quju, ROUND(MAX(djllsum), 0) djllmax, MAX(hmsbfsum) hmsbfmax, MAX(dbkjsum) dbkjmax,
+        MAX(mangguollsum) mangguollmax, MAX(4Kllsum) 4Kllmax, MAX(youkullsum) youkullmax,
+        MAX(bestvllsum) bestvllmax, MAX(cesullsum) cesullmax, MAX(bobollsum) bobollmax,
+        MAX(tianyillsum) tianyillmax, MAX(jiaoyullsum) jiaoyullmax, MAX(huasullsum) huasullmax,
+        MAX(jiayoullsum) jiayoullmax, MAX(jylivellsum) jylivellmax
 FROM vfhqujuMonthsum 
 GROUP BY quju
 ;
-
-drop table IF EXISTS `iptvyw01`.`tfhMonRpt`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
-  `quju` VARCHAR(50) NOT NULL COMMENT '区局名字',
-  `avgwidth` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
-  `qujusjjdll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '设计节点流量',
-  `jdllmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量',
-  `jdllper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量百分比',
-  `qujusjhmsbf` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点流媒体设计并发',
-  `hmsbfmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发',
-  `hmsbfper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发百分比',
-  `qujusjdbkj` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点存储设计空间',
-  `dbkjmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间',
-  `dbkjper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
-  `mangguoll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
-  `mangguoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
-  `4Kll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '4K流量',
-  `4Kper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '4K/总流量占比',
-  `youkull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '优酷土豆流量',
-  `youkuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '优酷土豆/总流量占比',
-  `bestvll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
-  `bestvoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
-  `cesull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '测速流量',
-  `cesuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '测速/总流量占比',
-  `boboll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '播播流量',
-  `boboper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '播播/总流量占比',
-  `tianyill` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '天翼视讯流量',
-  `tianyiper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '天翼视讯/总流量占比',
-  `jiaoyull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '教育流量',
-  `jiaoyuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '教育/总流量占比',
-  `huasull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '华数流量',
-  `huasuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '华数/总流量占比',
-  `jiayoull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸流量',
-  `jiayouper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸/总流量占比',
-  `jylivell` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸直播流量',
-  `jyliveper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸直播/总流量占比',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
-  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `idx_tfhDayRpt_id` (`id` ASC))
-  COMMENT '按区局统计一个月烽火平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 #生成烽火平台月报存储过程
 DROP PROCEDURE IF EXISTS pfhMonRpt;
@@ -1356,14 +1317,29 @@ delimiter //
 CREATE PROCEDURE pfhMonRpt()
 BEGIN
 INSERT INTO tfhMonRpt(quju, avgwidth, qujusjjdll, jdllmax, jdllper, 
-       qujusjhmsbf, hmsbfmax, hmsbfper, qujusjdbkj, dbkjmax, dbkjper,
-
-       updatetime, createowner, updateowner)
-SELECT sj.quju '区局', ROUND(qj.djllmax*1024/qj.hmsbfmax, 2) '平均码流(Mbps)', 
-       sj.qujusjjdll '设计流量(Gbps)', qj.djllmax '最大流量(Gbps)', ROUND(qj.djllmax/sj.qujusjjdll*100,0) '流量(%)',
-       sj.qujusjepgbf 'EPG设计并发', qj.epgbfmax 'EPG实际最大并发', ROUND(qj.epgbfmax/sj.qujusjepgbf*100, 0) 'EPG(%)',
-       sj.qujusjhmsbf '流媒体设计并发', qj.hmsbfmax '流媒体实际最大并发', ROUND(qj.hmsbfmax/sj.qujusjhmsbf*100, 0) '流媒体(%)',
-       sj.qujusjdbkj '设计点播存储空间(T)', qj.dbkjmax '实际最大点播存储空间(T)', ROUND(qj.dbkjmax/sj.qujusjdbkj*100, 0) '存储空间(%)',
+        qujusjhmsbf, hmsbfmax, hmsbfper, qujusjdbkj, dbkjmax, dbkjper,
+        mangguoll, mangguoper, 4Kll, 4Kper, youkull, youkuper,bestvll, bestvoper, 
+        cesull, cesuper, boboll, boboper, tianyill, tianyiper, jiaoyull, jiaoyuper, 
+        huasull, huasuper, jiayoull, jiayouper, jylivell, jyliveper,
+        updatetime, createowner, updateowner)
+SELECT sj.quju '区局', ROUND(qj.djllmax/qj.hmsbfmax, 2) '平均码流(Mbps)', 
+       ROUND(sj.qujusjjdll/1024,0) '设计流量(Gbps)', ROUND(qj.djllmax/1024, 0) '最大流量(Gbps)', 
+       ROUND(qj.djllmax/sj.qujusjjdll*100,0) '流量(%)',
+       sj.qujusjhmsbf '流媒体设计并发', qj.hmsbfmax '流媒体实际最大并发', 
+       ROUND(qj.hmsbfmax/sj.qujusjhmsbf*100, 0) '流媒体(%)',
+       sj.qujusjdbkj '设计点播存储空间(T)', qj.dbkjmax '实际最大点播存储空间(T)', 
+       ROUND(qj.dbkjmax/sj.qujusjdbkj*100, 0) '存储空间(%)',
+       ROUND(qj.mangguollmax/1024,0) '芒果流量(Gbps)', ROUND(qj.mangguollmax/sj.qujusjjdll*100,0) '芒果流量(%)',
+       ROUND(qj.4Kllmax/1024,0) '4K流量(Gbps)', ROUND(qj.4Kllmax/sj.qujusjjdll*100,0) '4K流量(%)',
+       ROUND(qj.youkullmax/1024,0) '优酷土豆流量(Gbps)', ROUND(qj.youkullmax/sj.qujusjjdll*100,0) '优酷土豆流量(%)',
+       ROUND(qj.bestvllmax/1024,0) '百视通流量(Gbps)', ROUND(qj.bestvllmax/sj.qujusjjdll*100,0) '百视通流量(%)',
+       ROUND(qj.cesullmax/1024,0) '测速流量(Gbps)', ROUND(qj.cesullmax/sj.qujusjjdll*100,0) '测速流量(%)',
+       ROUND(qj.bobollmax/1024,0) '播播流量(Gbps)', ROUND(qj.bobollmax/sj.qujusjjdll*100,0) '播播流量(%)',
+       ROUND(qj.tianyillmax/1024,0) '天翼流量(Gbps)', ROUND(qj.tianyillmax/sj.qujusjjdll*100,0) '天翼流量(%)',
+       ROUND(qj.jiaoyullmax/1024,0) '教育中心流量(Gbps)', ROUND(qj.jiaoyullmax/sj.qujusjjdll*100,0) '教育中心流量(%)',
+       ROUND(qj.huasullmax/1024,0) '华数流量(Gbps)', ROUND(qj.huasullmax/sj.qujusjjdll*100,0) '华数流量(%)',
+       ROUND(qj.jiayoullmax/1024,0) '嘉攸流量(Gbps)', ROUND(qj.jiayoullmax/sj.qujusjjdll*100,0) '嘉攸流量(%)',
+       ROUND(qj.jylivellmax/1024,0) '嘉攸直播流量(Gbps)', ROUND(qj.jylivellmax/sj.qujusjjdll*100,0) '嘉攸直播流量(%)',
        NOW(), USER(), USER()
 FROM vfhqujusheji sj, vfhqujuMonthmax qj
 WHERE sj.quju = qj.quju
@@ -1372,29 +1348,32 @@ COMMIT;
 END //
 delimiter ;
 
-#生成月报定时任务事件
+#生成烽火月报定时任务事件
 DROP EVENT IF EXISTS ehwMonRpt;
 CREATE EVENT IF NOT EXISTS ehwMonRpt
   ON SCHEDULE EVERY 1 MONTH 
   STARTS '2017-4-24 07:05:00'
   ON COMPLETION PRESERVE ENABLE
-  DO call phwMonRpt();
+  DO call pfhMonRpt();
 
-#生成华为当月月报数据
+#生成烽为前一月月报数据
 SELECT sj.quju '区局', sj.avgwidth '平均码流(Mbps)', 
        sj.qujusjjdll '设计流量(Gbps)', sj.jdllmax '最大流量(Gbps)', sj.jdllper '流量(%)',
-       sj.qujusjepgbf 'EPG设计并发', sj.epgbfmax 'EPG实际最大并发', sj.epgbfper 'EPG(%)',
        sj.qujusjhmsbf '流媒体设计并发', sj.hmsbfmax '流媒体实际最大并发', sj.hmsbfper '流媒体(%)',
        sj.qujusjdbkj '设计点播存储空间(T)', sj.dbkjmax '实际最大点播存储空间(T)', sj.dbkjper '存储空间(%)',
+       sj.mangguoll '芒果流量(Gbps)', sj.mangguoper '芒果流量(%)', sj.4Kll '4K流量(Gbps)', sj.4Kper '4K流量(%)', 
+       sj.youkull '优酷土豆流量(Gbps)', sj.youkuper '优酷土豆流量(%)', sj.bestvll '百视通流量(Gbps)', sj.bestvoper '百视通流量(%)', 
+       sj.cesull '测速流量(Gbps)', sj.cesuper '测速流量(%)', sj.boboll '播播流量(Gbps)', sj.boboper '播播流量(%)', 
+       sj.tianyill '天翼流量(Gbps)', sj.tianyiper '天翼流量(%)', sj.jiaoyull '教育中心流量(Gbps)', sj.jiaoyuper '教育中心流量(%)', 
+       sj.huasull '华数流量(Gbps)', sj.huasuper '华数流量(%)', sj.jiayoull '嘉攸流量(Gbps)', sj.jiayouper '嘉攸流量(%)', 
+       sj.jylivell '嘉攸直播流量(Gbps)', sj.jyliveper '嘉攸直播流量(%)',
        DATE_FORMAT(sj.createtime, '%Y%m') '月份'
-FROM thwMonRpt sj
+FROM tfhMonRpt sj
 WHERE unix_timestamp(sj.createtime) > unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
 ;
 
 
-#生成烽火平台月报
-
-
+#创建中兴月报表
 DROP TABLE IF EXISTS tzteMonRpt;
 CREATE TABLE `iptvyw01`.`tzteMonRpt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
@@ -1451,3 +1430,52 @@ CREATE TABLE `iptvyw01`.`thwMonRpt` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `idx_thwMonRpt_id` (`id` ASC)) 
   COMMENT '统计一个月华为平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+#创建烽火月报表
+drop table IF EXISTS `iptvyw01`.`tfhMonRpt`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `quju` VARCHAR(50) NOT NULL COMMENT '区局名字',
+  `avgwidth` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '平均码流(Mbps)',
+  `qujusjjdll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '设计节点流量',
+  `jdllmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量',
+  `jdllper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点峰值流量百分比',
+  `qujusjhmsbf` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点流媒体设计并发',
+  `hmsbfmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发',
+  `hmsbfper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点流媒体峰值并发百分比',
+  `qujusjdbkj` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '节点存储设计空间',
+  `dbkjmax` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间',
+  `dbkjper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '节点存储峰值空间百分比',
+  `mangguoll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
+  `mangguoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
+  `4Kll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '4K流量',
+  `4Kper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '4K/总流量占比',
+  `youkull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '优酷土豆流量',
+  `youkuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '优酷土豆/总流量占比',
+  `bestvll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
+  `bestvoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
+  `cesull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '测速流量',
+  `cesuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '测速/总流量占比',
+  `boboll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '播播流量',
+  `boboper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '播播/总流量占比',
+  `tianyill` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '天翼视讯流量',
+  `tianyiper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '天翼视讯/总流量占比',
+  `jiaoyull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '教育流量',
+  `jiaoyuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '教育/总流量占比',
+  `huasull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '华数流量',
+  `huasuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '华数/总流量占比',
+  `jiayoull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸流量',
+  `jiayouper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸/总流量占比',
+  `jylivell` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '嘉攸直播流量',
+  `jyliveper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '嘉攸直播/总流量占比',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_tfhDayRpt_id` (`id` ASC))
+  COMMENT '按区局统计一个月烽火平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
