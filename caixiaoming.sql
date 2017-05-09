@@ -81,22 +81,17 @@ select popid, upid, jiedian, tjdbkj, tjsykj, tjkjsyl,
     tjgfdb, tjgfzb, tjgq, tjbq, opt1, opt2, opt3, opt4, opt5,
     now(), now(), user(), user()
 from tmp_thwtongji;
-delete from thwtongji;
-commit;
+
 rollback;
 SELECT * from thwtongji;
-delete from thwtongji
-where unix_timestamp(createtime) > unix_timestamp(current_date());
+
 select * from tmp_thwtongji;
 truncate table tmp_thwtongji;
 show variables like 'autocommit';
 set autocommit = 0;
 
 DELETE from tmp_thwethTraffic;
-delete from thwethTraffic
-where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from thwtongji
-where unix_timestamp(createtime) > unix_timestamp(current_date());
+
 
 
 select jiedian, ROUND(sum(ethbandwidth)/1000, 0) as sethbandwidth, 
@@ -207,7 +202,7 @@ FROM tmp_tztedbkj
 GROUP BY hmsname; commit;
 truncate table tztedbkj;
 truncate table tztehmsbf;
-delete from tztedbkj;commit;
+
 select * from tztedbkj order by createtime desc;
 select * from tztehmsbf order by createtime desc;
 
@@ -302,9 +297,6 @@ SELECT epgname, MAX(epgbf), NOW(), USER(), USER()
 FROM tmp_tzteepgbf epg
 GROUP BY epgname;
 
-delete from tzteepgbf where unix_timestamp(createtime) > unix_timestamp(current_date()) ;
-delete from tztedbkj where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from tztehmsbf where unix_timestamp(createtime) > unix_timestamp(current_date());
 
 drop view vzteepggrpbf;
 CREATE SQL SECURITY INVOKER VIEW vzteepggrpbf
@@ -324,9 +316,6 @@ select count(*) from tmp_tzteepgbf;
 
 select * from tztesheji;
 
-delete from tfhhmsbf where unix_timestamp(createtime) > unix_timestamp(current_date()) ;
-delete from tfhepgbf where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from tfhdbspace where unix_timestamp(createtime) > unix_timestamp(current_date());
 
 select * from tfhepgbf;
 select *　from iptvyw01.tfhhmsbf;
@@ -449,17 +438,6 @@ commit;
 select * from tzteDayRpt;
 select * from tzteDayRptAreaSum;
 
-delete from tzteepgbf
-where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from tztedbkj
-where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from tztehmsbf
-where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from tzteDayRpt
-where unix_timestamp(createtime) > unix_timestamp(current_date());
-delete from tzteDayRptAreaSum
-where unix_timestamp(createtime) > unix_timestamp(current_date());
-commit;
 
 truncate table tzteDayRpt;
 truncate table tzteDayRptAreaSum;
@@ -539,3 +517,31 @@ order by t2.upid, t4.jdname;
 select DATE_SUB(current_date, INTERVAL 31 DAY);
 
 select greatest()
+
+#删除中兴平台当天数据
+delete from tzteepgbf
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tztedbkj
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tztehmsbf
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tzteDayRpt
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tzteDayRptAreaSum
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+commit;
+
+COMMIT;
+#删除华为平台当天数据
+delete from thwtongji
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from thwethTraffic
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from thwtongji
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+COMMIT;
+#删除烽火平台当天数据
+delete from tfhhmsbf where unix_timestamp(createtime) > unix_timestamp(current_date()) ;
+delete from tfhepgbf where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tfhdbspace where unix_timestamp(createtime) > unix_timestamp(current_date());
+COMMIT;

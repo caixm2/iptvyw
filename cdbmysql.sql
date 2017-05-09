@@ -680,8 +680,8 @@ CREATE TABLE `iptvyw01`.`thwDayRptAreaSum` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `idx_thwDayRptAreaSum_id` (`id` ASC));
 
-drop table `iptvyw01`.`t3a_usr`;
-CREATE TABLE `iptvyw01`.`t3a_usr` (
+DROP TABLE IF EXISTS `iptvyw01`.`t3a_usr`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `adslname` VARCHAR(20) NOT NULL  COMMENT '设备编号，用户大AD' ,
   `loginname` VARCHAR(30) NOT NULL COMMENT 'IPTV账号',
   `ipaddr` VARCHAR(50)  COMMENT '用户IP地址',
@@ -714,12 +714,13 @@ load data local infile '/home/xknight/django/t3a_usr.csv' replace into table t3a
 set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
 ignore 1 lines;
 truncate TABLE t3a_usr;
-load data local infile '/home/caixiaoming/t3a_usr.csv' replace into table t3a_usr character 
+load data local infile '/home/caixiaoming/django/t3a_usr.csv' 
+replace into table t3a_usr character 
 set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
 ignore 1 lines;
 
-drop table `iptvyw01`.`tnoc_usr_ippool`;
-CREATE TABLE `iptvyw01`.`tnoc_usr_ippool` (
+DROP TABLE IF EXISTS `iptvyw01`.`tnoc_usr_ippool`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tnoc_usr_ippool` (
   `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
   `ipend` VARCHAR(50) NOT NULL COMMENT 'ip地址段结束',
   `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
@@ -733,7 +734,13 @@ CREATE TABLE `iptvyw01`.`tnoc_usr_ippool` (
   PRIMARY KEY (`ipstart`),
   UNIQUE INDEX `idx_tnoc_usr_ippool_ipstart` (`ipstart` ASC));
 truncate table tnoc_usr_ippool;
-load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' replace into table tnoc_usr_ippool character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' 
+replace into table tnoc_usr_ippool character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+truncate table tnoc_usr_ippool;
+load data local infile '/home/caixiaoming/django/tnoc_usr_ippool.csv' 
+replace into table tnoc_usr_ippool character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 ##计算某一段地址中有多少用户
 ##1. 将总的地址段按C或者B拆分成小地址段存入临时表
@@ -744,7 +751,7 @@ DROP PROCEDURE IF EXISTS p3a_usrs_in_ippool;
 delimiter //
 CREATE PROCEDURE p3a_usrs_in_ippool(IN iplen INT, IN ipflag VARCHAR(1))
 BEGIN
-  #根据输入参数，计算分割的IP段长度。
+  #根据输入参数，计算分割的IP段长度。根据根据
   DECLARE clen INT;
   DECLARE blen INT;
   DECLARE len INT;
@@ -755,7 +762,7 @@ BEGIN
   
   CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tnoc_split_ippool` (
     `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
-    `ipend` VARCHAR(50) NOT NULL COMMENT 'ip地址段结束',
+    `ipend` VARCHAR(50) NOT 完成中中NULL COMMENT 'ip地址段结束',
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
   );
@@ -818,7 +825,8 @@ BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE usr_ip_cur CURSOR FOR 
       SELECT ipaddr FROM t3a_usr
-      WHERE unix_timestamp(logintime) >  unix_timestamp(date_sub(curdate(), interval 1 month))
+      WHERE 1=1 
+      #AND unix_timestamp(logintime) >  unix_timestamp(date_sub(curdate(), interval 1 month))
       AND status IN('1','2');
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
     OPEN usr_ip_cur;
@@ -848,7 +856,7 @@ delimiter ;
 CALL p3a_usrs_in_ippool(16, 'B');
 
 
-DROP TABLE `iptvyw01`.`tmp_tnoc_split_ippool`;
+DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
 CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tnoc_split_ippool` (
   `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
   `ipend` VARCHAR(50) NOT NULL COMMENT 'ip地址段结束',

@@ -8,9 +8,11 @@ import zipfile, os, xlsxwriter,csv,sys
 from tkinter.tix import ROW
 
 TITLE = ['节点','平均码流(Mbps)','设计带宽(Gbps)','输出带宽(Gbps)','输出带宽占比(%)',
-           '流媒体总并发(个)','流媒体峰值并发(个)','流媒体并发率(%)','存储总空间(T)','已使用空间(T)','空间使用率(%)', 
-           '芒果tv(Mbps)','芒果tv(%)','4K(Mbps)','4K(%)','优酷(Mbps)','优酷(%)','百事通回源(Mbps)','百事通回源(%)',
-           '测速(Mbps)','测速(％)','播播(Mbps)','播播(%)','天翼视讯(Mbps)','天翼视讯(%)','教育中心(Mbps)','教育中心(%)','华数(Mbps)','华数(%)',
+           '流媒体总并发(个)','流媒体峰值并发(个)','流媒体并发率(%)','存储总空间(T)',
+           '已使用空间(T)','空间使用率(%)', '芒果tv(Mbps)','芒果tv(%)','4K(Mbps)','4K(%)',
+           '优酷(Mbps)','优酷(%)','机顶盒升级(Mbps)','机顶盒升级(%)', '百事通回源(Mbps)','百事通回源(%)', 
+           '测速(Mbps)','测速(％)','播播(Mbps)','播播(%)','天翼视讯(Mbps)','天翼视讯(%)',
+           '教育中心(Mbps)','教育中心(%)','华数(Mbps)','华数(%)',
            '嘉攸(Mbps)','嘉攸(%)','嘉攸直播(Mbps)','嘉攸直播(%)',
         'EPG名字','EPG总并发(个)','EPG IP','EPG峰值并发(个)','EPG并发率(%)']
 
@@ -51,7 +53,7 @@ tmp2epgbf += " SELECT epgip, epgname, epgmaxbf, NOW(), USER(), USER()"
 tmp2epgbf += " FROM tmp_tfhepgbf"
 tmp2epgbf += " WHERE epgip <> 'allIp' ;"
 
-fhpop = "SELECT sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwdith, sj.sjjdll, "
+fhpop =  "SELECT sj.nodeCname, ROUND(SUM(hms.maxoutput)/SUM(hms.maxhmsbf),0) avgwdith, sj.sjjdll, "
 fhpop += "        ROUND(SUM(hms.maxoutput),0) maxoutput, "
 fhpop += "        ROUND(SUM(hms.maxoutput)/sj.sjjdll*100,0) outputper,"
 fhpop += "        sj.sjjdbf, SUM(hms.maxhmsbf) hmsbf, ROUND(SUM(hms.maxhmsbf)/sj.sjjdbf*100, 0) bfper,"
@@ -63,6 +65,8 @@ fhpop += "        sum(if (hms.cpname = '4K' , round(hms.maxoutput, 0) , 0)) 4K, 
 fhpop += "        ROUND(sum(if (hms.cpname = '4K', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS 4KPer,"
 fhpop += "        sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0)) youku,"
 fhpop += "        ROUND(sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS youkuPer,"
+fhpop += "        sum(if (hms.cpname = '机顶盒升级包', round(hms.maxoutput, 0), 0)) stbdown,"
+fhpop += "        ROUND(sum(if (hms.cpname = '机顶盒升级包', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS stbdownPer,"
 fhpop += "        sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0)) bestvsrc,"
 fhpop += "        ROUND(sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS bestvsrcPer,"
 fhpop += "        sum(if (hms.cpname = '测速', round(hms.maxoutput, 0), 0)) cesu,"
@@ -125,6 +129,7 @@ if __name__ == "__main__":
         if tvutil.isExistFile(dbfile) is False:
             print('文件不存在：' + dbfile)
             exit()
+        
         '''
                 导入烽火EPG数据
             '''
@@ -184,7 +189,7 @@ if __name__ == "__main__":
 
         print('EPG数据从tmp_tfhdbspace导入tfhdbspace。')
  
-  
+         
         '''
                 数据导出到xlsx文件
             '''
