@@ -1239,7 +1239,7 @@ create procedure pfhDayRpt()
 BEGIN
 INSERT INTO tfhDayRpt (quju, nodeCname, nodeid, avgwidth, sjjdll, peakjdll, jdllper, 
   sjjdbf,peakjdbf,jdbfper,sjdbkj,peakdbkj,dbkjper,
-  mangguoll,mangguoper,4Kll,4Kper,youkull,youkuper,bestvll,bestvoper,cesull,cesuper,
+  mangguoll,mangguoper,4Kll,4Kper,youkull,youkuper,stbdown, stbdownper,bestvll,bestvoper,cesull,cesuper,
   boboll,boboper,tianyill,tianyiper,jiaoyull,jiaoyuper,huasull,huasuper,
   jiayoull,jiayouper,jylivell,jyliveper,updatetime, createowner, updateowner
                       )
@@ -1256,6 +1256,8 @@ SELECT sj.quju, sj.nodeCname, sj.nodeid,
         ROUND(sum(if (hms.cpname = '4K', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS 4KPer,
         sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0)) youku,
         ROUND(sum(if (hms.cpname = '优酷土豆', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS youkuPer,
+        sum(if (hms.cpname = '机顶盒升级包', round(hms.maxoutput, 0), 0)) stbdown,
+        ROUND(sum(if (hms.cpname = '机顶盒升级包', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS stbdownPer,
         sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0)) bestvsrc,
         ROUND(sum(if (hms.cpname = '百事通回源', round(hms.maxoutput, 0), 0))/sj.sjjdll*100, 0) AS bestvsrcPer,
         sum(if (hms.cpname = '测速', round(hms.maxoutput, 0), 0)) cesu,
@@ -1299,20 +1301,20 @@ CREATE event IF NOT EXISTS efhDayRpt
 CREATE OR REPLACE VIEW vfhqujuMonthsum AS
 SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, SUM(dr.peakjdbf) hmsbfsum, 
         SUM(dr.peakdbkj) dbkjsum, SUM(mangguoll) mangguollsum ,SUM(4Kll) 4Kllsum,
-        SUM(youkull) youkullsum, SUM(bestvll) bestvllsum, SUM(cesull) cesullsum,
+        SUM(youkull) youkullsum, SUM(stbdown) stbdownllsum, SUM(bestvll) bestvllsum, SUM(cesull) cesullsum,
         SUM(boboll) bobollsum, SUM(tianyill) tianyillsum, SUM(jiaoyull) jiaoyullsum,
         SUM(huasull) huasullsum, SUM(jiayoull) jiayoullsum, SUM(jylivell) jylivellsum
 FROM tfhsheji sj, tfhDayRpt dr
 WHERE sj.nodeid = dr.nodeid
-#AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
-#AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
+AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
 GROUP BY dr.quju, DATE_FORMAT(dr.createtime, '%Y%m%d')
 ;
 
 CREATE OR REPLACE VIEW vfhqujuMonthmax AS
 SELECT quju, ROUND(MAX(djllsum), 0) djllmax, MAX(hmsbfsum) hmsbfmax, MAX(dbkjsum) dbkjmax,
         MAX(mangguollsum) mangguollmax, MAX(4Kllsum) 4Kllmax, MAX(youkullsum) youkullmax,
-        MAX(bestvllsum) bestvllmax, MAX(cesullsum) cesullmax, MAX(bobollsum) bobollmax,
+        MAX(stbdownllsum) stbdownllmax, MAX(bestvllsum) bestvllmax, MAX(cesullsum) cesullmax, MAX(bobollsum) bobollmax,
         MAX(tianyillsum) tianyillmax, MAX(jiaoyullsum) jiaoyullmax, MAX(huasullsum) huasullmax,
         MAX(jiayoullsum) jiayoullmax, MAX(jylivellsum) jylivellmax
 FROM vfhqujuMonthsum 
@@ -1326,7 +1328,7 @@ CREATE PROCEDURE pfhMonRpt()
 BEGIN
 INSERT INTO tfhMonRpt(quju, avgwidth, qujusjjdll, jdllmax, jdllper, 
         qujusjhmsbf, hmsbfmax, hmsbfper, qujusjdbkj, dbkjmax, dbkjper,
-        mangguoll, mangguoper, 4Kll, 4Kper, youkull, youkuper,bestvll, bestvoper, 
+        mangguoll, mangguoper, 4Kll, 4Kper, youkull, youkuper,stbdown, stbdownper, bestvll, bestvoper, 
         cesull, cesuper, boboll, boboper, tianyill, tianyiper, jiaoyull, jiaoyuper, 
         huasull, huasuper, jiayoull, jiayouper, jylivell, jyliveper,
         updatetime, createowner, updateowner)
@@ -1340,6 +1342,7 @@ SELECT sj.quju '区局', ROUND(qj.djllmax/qj.hmsbfmax, 2) '平均码流(Mbps)',
        ROUND(qj.mangguollmax/1024,0) '芒果流量(Gbps)', ROUND(qj.mangguollmax/sj.qujusjjdll*100,0) '芒果流量(%)',
        ROUND(qj.4Kllmax/1024,0) '4K流量(Gbps)', ROUND(qj.4Kllmax/sj.qujusjjdll*100,0) '4K流量(%)',
        ROUND(qj.youkullmax/1024,0) '优酷土豆流量(Gbps)', ROUND(qj.youkullmax/sj.qujusjjdll*100,0) '优酷土豆流量(%)',
+       ROUND(qj.stbdownllmax/1024,0) '机顶盒下载流量(Gbps)', ROUND(qj.stbdownllmax/sj.qujusjjdll*100,0) '机顶盒下载流量(%)',
        ROUND(qj.bestvllmax/1024,0) '百视通流量(Gbps)', ROUND(qj.bestvllmax/sj.qujusjjdll*100,0) '百视通流量(%)',
        ROUND(qj.cesullmax/1024,0) '测速流量(Gbps)', ROUND(qj.cesullmax/sj.qujusjjdll*100,0) '测速流量(%)',
        ROUND(qj.bobollmax/1024,0) '播播流量(Gbps)', ROUND(qj.bobollmax/sj.qujusjjdll*100,0) '播播流量(%)',
@@ -1357,10 +1360,10 @@ END //
 delimiter ;
 
 #生成烽火月报定时任务事件
-DROP EVENT IF EXISTS ehwMonRpt;
-CREATE EVENT IF NOT EXISTS ehwMonRpt
+DROP EVENT IF EXISTS efhMonRpt;
+CREATE EVENT IF NOT EXISTS efhMonRpt
   ON SCHEDULE EVERY 1 MONTH 
-  STARTS '2017-4-24 07:05:00'
+  STARTS '2017-5-2 07:10:00'
   ON COMPLETION PRESERVE ENABLE
   DO call pfhMonRpt();
 
@@ -1460,6 +1463,8 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
   `4Kper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '4K/总流量占比',
   `youkull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '优酷土豆流量',
   `youkuper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '优酷土豆/总流量占比',
+  `stbdown` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载流量',
+  `stbdownper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载/总流量' ,
   `bestvll` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '芒果流量',
   `bestvoper` double UNSIGNED NOT NULL DEFAULT 0 COMMENT '芒果/总流量占比',
   `cesull` double UNSIGNED NOT NULL DEFAULT 1 COMMENT '测速流量',
@@ -1486,4 +1491,8 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `idx_tfhDayRpt_id` (`id` ASC))
   COMMENT '按区局统计一个月烽火平台最大值' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+#烽火日报表中增加2列机顶盒下载数据
+ALTER TABLE tfhDayRpt ADD stbdown double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载流量' AFTER youkuper;
+ALTER TABLE tfhDayRpt ADD stbdownper double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载/总流量' AFTER stbdown;
 
