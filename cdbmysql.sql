@@ -743,9 +743,10 @@ replace into table tnoc_usr_ippool character
 set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 ##计算某一段地址中有多少用户
-##1. 将总的地址段按C或者B拆分成小地址段存入临时表
-##2. 将3A用户进行比对后，计算各段的用户数。
-##3. 输出结果表。
+##1. 将NOC总的地址段按C或者B拆分成小地址段存入临时表
+##2. 将华为地址段合入NOC表中
+##3. 将3A用户和华为地址段进行比对后，计算各段的用户数。
+##4. 输出结果表。
 
 DROP PROCEDURE IF EXISTS p3a_usrs_in_ippool;
 delimiter //
@@ -761,9 +762,19 @@ BEGIN
   #创建临时表存放分割后的IP地址信息
   
   CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tnoc_split_ippool` (
-    `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
-    `ipend` VARCHAR(50) NOT 完成中中NULL COMMENT 'ip地址段结束',
+    `ipstart` VARCHAR(50) NOT NULL  COMMENT 'NOC IP地址段开始' ,
+    `ipend` VARCHAR(50) NOT NULL COMMENT 'NOC IP地址段结束',
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
+    `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
+  );
+
+  CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tusr_in_provider_ippool` (
+    `nocipstart` VARCHAR(50) NOT NULL  COMMENT 'NOC IP地址段开始' ,
+    `nocipend` VARCHAR(50) NOT NULL COMMENT 'NOC IP地址段结束',
+    `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
+    `popipstart` VARCHAR(50) NOT NULL  COMMENT '厂商ip地址段开始' ,
+    `popipend` VARCHAR(50) NOT NULL COMMENT '厂商ip地址段结束',
+    `popname` VARCHAR(50) NOT NULL COMMENT 'POP点名字',
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
   );
 
@@ -818,6 +829,19 @@ BEGIN
     CLOSE  noc_ip_cur;
   END;
     #SELECT inet_ntoa(ipstart), inet_ntoa(ipend), quju FROM tmp_tnoc_split_ippool;
+  
+  #将华为地址段合入NOC表中
+  BEGIN
+    DECLARE provider_ip_cur CURSOR FOR 
+      SELECT ipstart, ipend, nodeid FROM thwiparea;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET pro_end = 1;
+    OPEN provider_ip_cur;
+      FETCH NEXT FROM provider_ip_cur INTO provideripstart, provideripend, providernodeid;
+      WHILE pro_end = 0 DO
+      END WHILE;
+
+    CLOSE provider_ip_cur;
+  END;
 
   #根据用户IP对比各IP地址段，计算出各段IP中的用户人数。
   BEGIN
@@ -1496,3 +1520,38 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
 ALTER TABLE tfhDayRpt ADD stbdown double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载流量' AFTER youkuper;
 ALTER TABLE tfhDayRpt ADD stbdownper double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载/总流量' AFTER stbdown;
 
+#创建华为平台IP地址段归属POP点信息表
+DROP TABLE IF EXISTS `iptvyw01`.`thwiparea`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`thwiparea` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `3aipid` BIGINT unsigned not null COMMENT '业务管理平台策略ID',
+  `parentid` VARCHAR(50) DEFAULT '0' COMMENT '父id',
+  `broadcast` VARCHAR(50) DEFAULT '1' COMMENT '广播',
+  `ipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'IP地址段开始',
+  `ipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'IP地址段结束',
+  `mask` VARCHAR(50) COMMENT '子网掩码',
+  `status` VARCHAR(50) NOT NULL DEFAULT '0' COMMENT '状态',
+  `nodeid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT '华为节点ID',
+  `nodename` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT '华为节点名称',
+  `areacode` VARCHAR(50)  COMMENT '区域码',
+  `epgprovider` VARCHAR(50) NOT NULL DEFAULT '没有epgprovider' COMMENT '厂商代码',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_thwiparea_id` (`id` ASC))
+  COMMENT '储存华为平台IP地址段归属POP点信息' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+truncate table `iptvyw01`.`thwiparea`;
+load data local infile '/home/caixiaoming/django/thwiparea.csv' 
+replace into table thwiparea 
+character set utf8 fields 
+terminated by ',' 
+enclosed by '"' 
+lines terminated by '\r\n'
+ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
+  `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
