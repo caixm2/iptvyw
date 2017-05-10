@@ -760,21 +760,24 @@ BEGIN
   SET blen = 65536;
 
   #创建临时表存放分割后的IP地址信息
-  
+  DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
   CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tnoc_split_ippool` (
     `ipstart` VARCHAR(50) NOT NULL  COMMENT 'NOC IP地址段开始' ,
     `ipend` VARCHAR(50) NOT NULL COMMENT 'NOC IP地址段结束',
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
+    `popipstart` VARCHAR(50) NOT NULL  COMMENT '厂商ip地址段开始' ,
+    `popipend` VARCHAR(50) NOT NULL COMMENT '厂商ip地址段结束',
+    `popid` VARCHAR(50) NOT NULL COMMENT 'POP点ID',
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
   );
-
+  DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusr_in_provider_ippool`;
   CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tusr_in_provider_ippool` (
     `nocipstart` VARCHAR(50) NOT NULL  COMMENT 'NOC IP地址段开始' ,
     `nocipend` VARCHAR(50) NOT NULL COMMENT 'NOC IP地址段结束',
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
     `popipstart` VARCHAR(50) NOT NULL  COMMENT '厂商ip地址段开始' ,
     `popipend` VARCHAR(50) NOT NULL COMMENT '厂商ip地址段结束',
-    `popname` VARCHAR(50) NOT NULL COMMENT 'POP点名字',
+    `popid` VARCHAR(50) NOT NULL COMMENT 'POP点ID',
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
   );
 
@@ -828,18 +831,58 @@ BEGIN
     COMMIT;
     CLOSE  noc_ip_cur;
   END;
-    #SELECT inet_ntoa(ipstart), inet_ntoa(ipend), quju FROM tmp_tnoc_split_ippool;
+    SELECT inet_ntoa(ipstart), inet_ntoa(ipend), quju FROM tmp_tnoc_split_ippool;
   
   #将华为地址段合入NOC表中
   BEGIN
+    DECLARE pro_end INT DEFAULT 0;
+    DECLARE provideripstart VARCHAR(50);
+    DECLARE provideripend VARCHAR(50);
+    DECLARE providernodeid VARCHAR(50);
+    DECLARE ipsplit BIGINT;
+    DECLARE counter BIGINT DEFAULT 0;
     DECLARE provider_ip_cur CURSOR FOR 
       SELECT ipstart, ipend, nodeid FROM thwiparea;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET pro_end = 1;
     OPEN provider_ip_cur;
       FETCH NEXT FROM provider_ip_cur INTO provideripstart, provideripend, providernodeid;
       WHILE pro_end = 0 DO
+        IF provideripstart = provideripend THEN
+          SET ipsplit = 1;
+        ELSE
+          SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(provideripstart))/len);
+        END IF;
+        SELECT provideripstart, provideripend, providernodeid;
+        SET counter = counter + 1; 
+        SELECT counter;
+        SELECT ipsplit;
+        SELECT INET_NTOA(noc.ipstart), INET_NTOA(noc.ipend)
+            FROM tmp_tnoc_split_ippool noc
+            WHERE INET_ATON(provideripstart) >= noc.ipstart
+            AND INET_ATON(provideripend) <= noc.ipend;
+        IF ipsplit = 1 THEN
+          INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, quju, popipstart, popipend, popid)
+          SELECT INET_NTOA(noc.ipstart), INET_NTOA(noc.ipend), noc.quju, provideripstart, provideripend, providernodeid
+            FROM tmp_tnoc_split_ippool noc
+            WHERE INET_ATON(provideripstart) >= noc.ipstart
+            AND INET_ATON(provideripend) <= noc.ipend;
+          
+          /*UPDATE tmp_tnoc_split_ippool SET popipstart = provideripstart, popipend = provideripend,
+            popid = providernodeid 
+            WHERE INET_ATON(provideripstart) >= ipstart
+            AND INET_ATON(provideripend) <= ipend;
+          SELECT INET_NTOA(ipstart), INET_NTOA(ipend), popipstart, popipend
+            FROM tmp_tnoc_split_ippool noc
+            WHERE INET_ATON(provideripstart) >= ipstart
+            AND INET_ATON(provideripend) <= ipend;*/
+        ELSEIF ipsplit > 1 THEN
+          SELECT provideripstart;
+        END IF;
+        FETCH NEXT FROM provider_ip_cur INTO provideripstart, provideripend, providernodeid;
       END WHILE;
-
+      COMMIT;
+      
+    SELECT nocipstart, nocipend, quju, popipstart, popipend, popid FROM tmp_tusr_in_provider_ippool;
     CLOSE provider_ip_cur;
   END;
 
@@ -865,7 +908,7 @@ BEGIN
     COMMIT;
     CLOSE usr_ip_cur;
   END;
-  SELECT INET_NTOA(ipstart), INET_NTOA(ipend), quju, usrnum 
+  SELECT INET_NTOA(ipstart), INET_NTOA(ipend), quju, popipstart, popipend, usrnum 
   FROM tmp_tnoc_split_ippool 
   WHERE usrnum > 0;
   #SELECT sum(usrnum) FROM tmp_tnoc_split_ippool WHERE usrnum > 0;
@@ -877,7 +920,7 @@ BEGIN
   DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
 END; //
 delimiter ;
-CALL p3a_usrs_in_ippool(16, 'B');
+CALL p3a_usrs_in_ippool(128, 'B');
 
 
 DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
