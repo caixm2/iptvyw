@@ -84,7 +84,7 @@ CHANGE COLUMN `id` `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增
 CHANGE COLUMN `createtime` `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写' ,
 ADD PRIMARY KEY (`id`);
 
-load data local infile "/home/caixiaoming/workspace/iptvyw/input/thwsheji.csv" replace into table thwsheji character set gbk fields terminated by "," lines terminated by "\r\n";
+load data local infile "/home/caixiaoming/workspace/iptvyw/input/thwsheji.csv" replace INTO table thwsheji character set gbk fields terminated by "," lines terminated by "\r\n";
 
 CREATE TABLE `iptvyw01`.`tmp_tztehmsbf` (
   `seqnum` INT UNSIGNED COMMENT '序号',
@@ -202,7 +202,7 @@ CREATE TABLE `iptvyw01`.`tztesheji` (
 ALTER TABLE `iptvyw01`.`tztesheji` 
 CHANGE COLUMN `epgname` `epggroupname` VARCHAR(50) NOT NULL COMMENT 'EPG分组中POP点名字' ;
 
-load data local infile '/home/caixiaoming/iptvyw01/tztesheji.csv' replace into table tztesheji character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/caixiaoming/iptvyw01/tztesheji.csv' replace INTO table tztesheji character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 CREATE TABLE `iptvyw01`.`tmp_tzteepgbf` (
   `epgdate` DATE NOT NULL COMMENT 'epg并发日期',
@@ -259,7 +259,7 @@ CREATE TABLE `iptvyw01`.`tzteepggrpsvr` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
 
-load data local infile '/home/caixiaoming/iptvyw01/tzteepggrpsvr.csv' replace into table tzteepggrpsvr character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/caixiaoming/iptvyw01/tzteepggrpsvr.csv' replace INTO table tzteepggrpsvr character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 delete from tzteepgbf
 where unix_timestamp(createtime) > unix_timestamp(current_date());
@@ -470,13 +470,13 @@ CREATE TABLE `iptvyw01`.`tfhdbspace` (
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
 
 truncate table tfhepgsheji;
-load data local infile '/home/caixiaoming/iptvyw01/tfhepgsheji.csv' replace into table tfhepgsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/caixiaoming/iptvyw01/tfhepgsheji.csv' replace INTO table tfhepgsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 truncate table tfhyewu;
-load data local infile '/home/caixiaoming/iptvyw01/tfhyewu.csv' replace into table tfhyewu character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
+load data local infile '/home/caixiaoming/iptvyw01/tfhyewu.csv' replace INTO table tfhyewu character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
 
 truncate table tfhsheji;
-load data local infile '/home/caixiaoming/iptvyw01/tfhsheji.csv' replace into table tfhsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
+load data local infile '/home/caixiaoming/iptvyw01/tfhsheji.csv' replace INTO table tfhsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
 
 drop table `iptvyw01`.`tzteDayRpt`;
 CREATE TABLE `iptvyw01`.`tzteDayRpt` (
@@ -710,12 +710,12 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   INDEX `idx_tyw_usr_stbid` (`stbid` ASC)
   );
 truncate table t3a_usr;
-load data local infile '/home/xknight/django/t3a_usr.csv' replace into table t3a_usr character 
+load data local infile '/home/xknight/django/t3a_usr.csv' replace INTO table t3a_usr character 
 set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
 ignore 1 lines;
 truncate TABLE t3a_usr;
 load data local infile '/home/caixiaoming/django/t3a_usr.csv' 
-replace into table t3a_usr character 
+replace INTO table t3a_usr character 
 set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
 ignore 1 lines;
 
@@ -735,11 +735,11 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tnoc_usr_ippool` (
   UNIQUE INDEX `idx_tnoc_usr_ippool_ipstart` (`ipstart` ASC));
 truncate table tnoc_usr_ippool;
 load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' 
-replace into table tnoc_usr_ippool character 
+replace INTO table tnoc_usr_ippool character 
 set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 truncate table tnoc_usr_ippool;
 load data local infile '/home/caixiaoming/django/tnoc_usr_ippool.csv' 
-replace into table tnoc_usr_ippool character 
+replace INTO table tnoc_usr_ippool character 
 set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 ##计算某一段地址中有多少用户
@@ -819,6 +819,7 @@ BEGIN
             VALUES (INET_ATON(noc_ipstart) + (a - 1)*len, INET_ATON(noc_ipend), noc_quju);
           ELSEIF a < ipsplit THEN
             #SELECT INET_NTOA(INET_ATON(noc_ipstart) + (a - 1)*len), INET_NTOA(INET_ATON(noc_ipstart) + a*len - 1), noc_quju;
+            #开始IP根据长度进行分拆，在没有到末尾前，从开始IP按长度循环增加。
             INSERT INTO tmp_tnoc_split_ippool(ipstart, ipend, quju) 
             VALUES (INET_ATON(noc_ipstart) + (a - 1)*len, INET_ATON(noc_ipstart) + a*len - 1, noc_quju);
           END IF;
@@ -831,7 +832,7 @@ BEGIN
     COMMIT;
     CLOSE  noc_ip_cur;
   END;
-    SELECT inet_ntoa(ipstart), inet_ntoa(ipend), quju FROM tmp_tnoc_split_ippool;
+    #SELECT inet_ntoa(ipstart), inet_ntoa(ipend), quju FROM tmp_tnoc_split_ippool;
   
   #将华为地址段合入NOC表中
   BEGIN
@@ -841,6 +842,7 @@ BEGIN
     DECLARE providernodeid VARCHAR(50);
     DECLARE ipsplit BIGINT;
     DECLARE counter BIGINT DEFAULT 0;
+    DECLARE a BIGINT DEFAULT 1;
     DECLARE provider_ip_cur CURSOR FOR 
       SELECT ipstart, ipend, nodeid FROM thwiparea;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET pro_end = 1;
@@ -852,37 +854,45 @@ BEGIN
         ELSE
           SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(provideripstart))/len);
         END IF;
-        SELECT provideripstart, provideripend, providernodeid;
+        #SELECT provideripstart, provideripend, providernodeid;
         SET counter = counter + 1; 
-        SELECT counter;
+        /*SELECT counter;
         SELECT ipsplit;
         SELECT INET_NTOA(noc.ipstart), INET_NTOA(noc.ipend)
             FROM tmp_tnoc_split_ippool noc
             WHERE INET_ATON(provideripstart) >= noc.ipstart
-            AND INET_ATON(provideripend) <= noc.ipend;
+            AND INET_ATON(provideripend) <= noc.ipend;*/
         IF ipsplit = 1 THEN
           INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, quju, popipstart, popipend, popid)
-          SELECT INET_NTOA(noc.ipstart), INET_NTOA(noc.ipend), noc.quju, provideripstart, provideripend, providernodeid
+          SELECT noc.ipstart, noc.ipend, noc.quju, INET_ATON(provideripstart), INET_ATON(provideripend), providernodeid
             FROM tmp_tnoc_split_ippool noc
             WHERE INET_ATON(provideripstart) >= noc.ipstart
             AND INET_ATON(provideripend) <= noc.ipend;
-          
-          /*UPDATE tmp_tnoc_split_ippool SET popipstart = provideripstart, popipend = provideripend,
-            popid = providernodeid 
-            WHERE INET_ATON(provideripstart) >= ipstart
-            AND INET_ATON(provideripend) <= ipend;
-          SELECT INET_NTOA(ipstart), INET_NTOA(ipend), popipstart, popipend
-            FROM tmp_tnoc_split_ippool noc
-            WHERE INET_ATON(provideripstart) >= ipstart
-            AND INET_ATON(provideripend) <= ipend;*/
         ELSEIF ipsplit > 1 THEN
-          SELECT provideripstart;
+          WHILE a <= ipsplit DO
+            IF a = ipsplit THEN
+              INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, quju, popipstart, popipend, popid)
+              SELECT noc.ipstart, noc.ipend, noc.quju, 
+                INET_ATON(provideripstart) + (a - 1)*len, INET_ATON(provideripend), providernodeid
+              FROM tmp_tnoc_split_ippool noc
+              WHERE INET_ATON(provideripstart) >= noc.ipstart
+              AND INET_ATON(provideripend) <= noc.ipend;
+            ElSEIF a < ipsplit THEN
+              INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, quju, popipstart, popipend, popid)
+              SELECT noc.ipstart, noc.ipend, noc.quju, 
+                INET_ATON(provideripstart) + (a - 1)*len, INET_ATON(provideripstart) + a*len-1, providernodeid
+              FROM tmp_tnoc_split_ippool noc
+              WHERE INET_ATON(provideripstart) >= noc.ipstart
+              AND INET_ATON(provideripend) <= noc.ipend;
+            END IF;
+            SET a = a + 1;
+          END WHILE;
         END IF;
         FETCH NEXT FROM provider_ip_cur INTO provideripstart, provideripend, providernodeid;
       END WHILE;
       COMMIT;
       
-    SELECT nocipstart, nocipend, quju, popipstart, popipend, popid FROM tmp_tusr_in_provider_ippool;
+    #SELECT nocipstart, nocipend, quju, popipstart, popipend, popid FROM tmp_tusr_in_provider_ippool;
     CLOSE provider_ip_cur;
   END;
 
@@ -903,24 +913,34 @@ BEGIN
       IF NOT done THEN
             UPDATE tmp_tnoc_split_ippool SET usrnum = usrnum + 1 
             WHERE INET_ATON(usr_ip) >= ipstart AND INET_ATON(usr_ip) <= ipend;
+            UPDATE tmp_tusr_in_provider_ippool SET usrnum = usrnum + 1
+            WHERE INET_ATON(usr_ip) >= popipstart AND INET_ATON(usr_ip) <= popipend;
       END IF;
     UNTIL done END REPEAT;
     COMMIT;
     CLOSE usr_ip_cur;
   END;
-  SELECT INET_NTOA(ipstart), INET_NTOA(ipend), quju, popipstart, popipend, usrnum 
-  FROM tmp_tnoc_split_ippool 
-  WHERE usrnum > 0;
+  #SELECT INET_NTOA(ipstart), INET_NTOA(ipend), quju, usrnum 
+  #FROM tmp_tnoc_split_ippool 
+  #WHERE usrnum > 0;
+  SELECT INET_NTOA(pro.nocipstart), INET_NTOA(pro.nocipend), pro.quju, 
+    INET_NTOA(pro.popipstart), INET_NTOA(pro.popipend), sj.jdname, pro.usrnum 
+  FROM tmp_tusr_in_provider_ippool pro, thwsheji sj
+  WHERE pro.usrnum > 0
+  AND pro.popid = sj.popid;
+  #SELECT SUM(usrnum) FROM tmp_tnoc_split_ippool WHERE usrnum > 0;
+  #SELECT SUM(usrnum) FROM tmp_tusr_in_provider_ippool WHERE usrnum > 0;
   #SELECT sum(usrnum) FROM tmp_tnoc_split_ippool WHERE usrnum > 0;
   #SELECT quju, SUM(usrnum)
   #FROM tmp_tnoc_split_ippool
-  #WHERE usrnum > 0
+  #WHERE usrnum > 0l
   #GROUP BY quju
   #ORDER by SUM(usrnum) DESC;
   DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
 END; //
 delimiter ;
 CALL p3a_usrs_in_ippool(128, 'B');
+
 
 
 DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
@@ -1591,7 +1611,7 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`thwiparea` (
 
 truncate table `iptvyw01`.`thwiparea`;
 load data local infile '/home/caixiaoming/django/thwiparea.csv' 
-replace into table thwiparea 
+replace INTO table thwiparea 
 character set utf8 fields 
 terminated by ',' 
 enclosed by '"' 
