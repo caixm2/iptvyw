@@ -84,7 +84,9 @@ CHANGE COLUMN `id` `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增
 CHANGE COLUMN `createtime` `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写' ,
 ADD PRIMARY KEY (`id`);
 
-load data local infile "/home/caixiaoming/workspace/iptvyw/input/thwsheji.csv" replace INTO table thwsheji character set gbk fields terminated by "," lines terminated by "\r\n";
+load data local infile "/home/caixiaoming/workspace/iptvyw/input/thwsheji.csv" 
+replace INTO table thwsheji character 
+set gbk fields terminated by "," lines terminated by "\r\n";
 
 CREATE TABLE `iptvyw01`.`tmp_tztehmsbf` (
   `seqnum` INT UNSIGNED COMMENT '序号',
@@ -202,7 +204,8 @@ CREATE TABLE `iptvyw01`.`tztesheji` (
 ALTER TABLE `iptvyw01`.`tztesheji` 
 CHANGE COLUMN `epgname` `epggroupname` VARCHAR(50) NOT NULL COMMENT 'EPG分组中POP点名字' ;
 
-load data local infile '/home/caixiaoming/iptvyw01/tztesheji.csv' replace INTO table tztesheji character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/caixiaoming/iptvyw01/tztesheji.csv' replace INTO table tztesheji character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 CREATE TABLE `iptvyw01`.`tmp_tzteepgbf` (
   `epgdate` DATE NOT NULL COMMENT 'epg并发日期',
@@ -259,7 +262,8 @@ CREATE TABLE `iptvyw01`.`tzteepggrpsvr` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
 
-load data local infile '/home/caixiaoming/iptvyw01/tzteepggrpsvr.csv' replace INTO table tzteepggrpsvr character set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/caixiaoming/iptvyw01/tzteepggrpsvr.csv' replace INTO table tzteepggrpsvr character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 delete from tzteepgbf
 where unix_timestamp(createtime) > unix_timestamp(current_date());
@@ -470,13 +474,16 @@ CREATE TABLE `iptvyw01`.`tfhdbspace` (
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0');
 
 truncate table tfhepgsheji;
-load data local infile '/home/caixiaoming/iptvyw01/tfhepgsheji.csv' replace INTO table tfhepgsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+load data local infile '/home/caixiaoming/iptvyw01/tfhepgsheji.csv' replace INTO table tfhepgsheji character 
+set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 truncate table tfhyewu;
-load data local infile '/home/caixiaoming/iptvyw01/tfhyewu.csv' replace INTO table tfhyewu character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
+load data local infile '/home/caixiaoming/iptvyw01/tfhyewu.csv' replace INTO table tfhyewu character 
+set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
 
 truncate table tfhsheji;
-load data local infile '/home/caixiaoming/iptvyw01/tfhsheji.csv' replace INTO table tfhsheji character set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
+load data local infile '/home/caixiaoming/iptvyw01/tfhsheji.csv' replace INTO table tfhsheji character 
+set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\n';
 
 drop table `iptvyw01`.`tzteDayRpt`;
 CREATE TABLE `iptvyw01`.`tzteDayRpt` (
@@ -687,13 +694,9 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `ipaddr` VARCHAR(50)  COMMENT '用户IP地址',
   `logintime` VARCHAR(20) COMMENT '最后一次登陆时间',
   `status` VARCHAR(5) COMMENT '账号状态',
-  `mac` VARCHAR(20) COMMENT '机顶盒mac地址',
-  `stbid` VARCHAR(50) COMMENT '机顶盒序列号',
-  `OPT1` VARCHAR(45) NULL COMMENT '找到对应的IP段为标记为Y，否则为空。',
-  `OPT2` VARCHAR(45) NULL COMMENT '备注2，扩充字段使用',
-  `OPT3` VARCHAR(45) NULL COMMENT '备注3，扩充字段使用',
-  `OPT4` VARCHAR(45) NULL COMMENT '备注4，扩充字段使用',
-  `OPT5` VARCHAR(45) NULL COMMENT '备注5，扩充字段使用',
+  `platform` VARCHAR(20) COMMENT '对应到平台',
+  `fj_name` VARCHAR(50) COMMENT '分局名字',
+  `quju` VARCHAR(50) COMMENT '区局名字',
   `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
   `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
   `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
@@ -702,12 +705,10 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
   PRIMARY KEY (`loginname`),
-  UNIQUE INDEX `uqidx_tyw_usr_loginname` (`loginname` ASC),
-  INDEX `idx_tyw_usr_adslname` (`adslname` ASC),
-  INDEX `idx_tyw_usr_ipaddr` (`ipaddr` ASC),
-  INDEX `idx_tyw_usr_logintime` (`logintime` ASC),
-  INDEX `idx_tyw_usr_mac` (`mac` ASC),
-  INDEX `idx_tyw_usr_stbid` (`stbid` ASC)
+  UNIQUE INDEX `uqidx_t3a_usr_loginname` (`loginname` ASC)
+  #INDEX `idx_3a_usr_adslname` (`adslname` ASC),
+  #INDEX `idx_t3a_usr_ipaddr` (`ipaddr` ASC),
+  #INDEX `idx_t3a_usr_logintime` (`logintime` ASC)
   );
 truncate table t3a_usr;
 load data local infile '/home/xknight/django/t3a_usr.csv' replace INTO table t3a_usr character 
@@ -716,7 +717,7 @@ ignore 1 lines;
 truncate TABLE t3a_usr;
 load data local infile '/home/caixiaoming/django/t3a_usr.csv' 
 replace INTO table t3a_usr character 
-set utf8 fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
 ignore 1 lines;
 
 DROP TABLE IF EXISTS `iptvyw01`.`tnoc_usr_ippool`;
@@ -748,16 +749,46 @@ set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 ##3. 将3A用户和华为地址段进行比对后，计算各段的用户数。
 ##4. 输出结果表。
 
+DROP PROCEDURE IF EXISTS p3a_calciplen;
+delimiter //
+CREATE PROCEDURE p3a_calciplen(
+  IN iplen INT, IN ipfield VARCHAR(1), OUT olen INT)
+BEGIN
+  DECLARE clen INT DEFAULT 256;  #定义C段IP长度。
+  DECLARE blen INT DEFAULT 65536;  #定义B段IP长度
+  #DECLARE len INT DEFAULT 0;
+  IF ipfield = "C" THEN
+    SET olen = iplen * clen;
+  ElSEIF ipfield = "B" THEN
+    SET olen = iplen * blen;
+  ELSE
+    SET olen = 0;
+  END IF;
+END //
+delimiter ;
+CALL p3a_calciplen(128, 'B', @len);
+SELECT @len;
+
 DROP PROCEDURE IF EXISTS p3a_usrs_in_ippool;
 delimiter //
-CREATE PROCEDURE p3a_usrs_in_ippool(IN iplen INT, IN ipflag VARCHAR(1))
+CREATE PROCEDURE p3a_usrs_in_ippool(IN iplen INT, IN ipfield VARCHAR(1), IN daylen INT(3), )
 BEGIN
   #根据输入参数，计算分割的IP段长度。根据根据
-  DECLARE clen INT;
-  DECLARE blen INT;
+  #DECLARE clen INT;
+  #DECLARE blen INT;
+  #SET clen = 256;
+  #SET blen = 65536;
   DECLARE len INT;
-  SET clen = 256;
-  SET blen = 65536;
+  CALL p3a_calciplen(iplen, ipfield, @len);
+  IF @len = 0 THEN
+    #@TODO: 报出异常直接退出。
+  END IF;
+  /*IF ipflag = "C" THEN
+    SET len = iplen*clen;
+  ELSEIF ipflag = "B" THEN
+    SET len = iplen*blen;
+  END IF;*/
+  #SELECT len;
 
   #创建临时表存放分割后的IP地址信息
   DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
@@ -765,9 +796,6 @@ BEGIN
     `ipstart` VARCHAR(50) NOT NULL  COMMENT 'NOC IP地址段开始' ,
     `ipend` VARCHAR(50) NOT NULL COMMENT 'NOC IP地址段结束',
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
-    `popipstart` VARCHAR(50) NOT NULL  COMMENT '厂商ip地址段开始' ,
-    `popipend` VARCHAR(50) NOT NULL COMMENT '厂商ip地址段结束',
-    `popid` VARCHAR(50) NOT NULL COMMENT 'POP点ID',
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
   );
   DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusr_in_provider_ippool`;
@@ -781,13 +809,6 @@ BEGIN
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
   );
 
-
-  IF ipflag = "C" THEN
-    SET len = iplen*clen;
-  ELSEIF ipflag = "B" THEN
-    SET len = iplen*blen;
-  END IF;
-  #SELECT len;
 
   #根据IP段长度分割IP段。
   BEGIN
@@ -804,7 +825,7 @@ BEGIN
     WHILE noc_end = 0 DO
       #SELECT noc_ipstart, noc_ipend, noc_quju;
       #SELECT INET_ATON(noc_ipstart), INET_ATON(noc_ipstart) + len - 1, noc_quju;
-      SET ipsplit = CEIL((INET_ATON(noc_ipend) - INET_ATON(noc_ipstart))/len); 
+      SET ipsplit = CEIL((INET_ATON(noc_ipend) - INET_ATON(noc_ipstart))/@len); 
       #SELECT ipsplit;
       IF ipsplit = 1 THEN
         #SELECT INET_NTOA(INET_ATON(noc_ipstart)), INET_NTOA(INET_ATON(noc_ipend)), noc_quju;
@@ -816,12 +837,12 @@ BEGIN
           IF a = ipsplit THEN
             #SELECT INET_NTOA(INET_ATON(noc_ipstart) + (a - 1)*len), INET_NTOA(INET_ATON(noc_ipend)), noc_quju;
             INSERT INTO tmp_tnoc_split_ippool(ipstart, ipend, quju) 
-            VALUES (INET_ATON(noc_ipstart) + (a - 1)*len, INET_ATON(noc_ipend), noc_quju);
+            VALUES (INET_ATON(noc_ipstart) + (a - 1)*@len, INET_ATON(noc_ipend), noc_quju);
           ELSEIF a < ipsplit THEN
             #SELECT INET_NTOA(INET_ATON(noc_ipstart) + (a - 1)*len), INET_NTOA(INET_ATON(noc_ipstart) + a*len - 1), noc_quju;
             #开始IP根据长度进行分拆，在没有到末尾前，从开始IP按长度循环增加。
             INSERT INTO tmp_tnoc_split_ippool(ipstart, ipend, quju) 
-            VALUES (INET_ATON(noc_ipstart) + (a - 1)*len, INET_ATON(noc_ipstart) + a*len - 1, noc_quju);
+            VALUES (INET_ATON(noc_ipstart) + (a - 1)*@len, INET_ATON(noc_ipstart) + a*@len - 1, noc_quju);
           END IF;
           SET a = a + 1;
         END WHILE;
@@ -852,7 +873,7 @@ BEGIN
         IF provideripstart = provideripend THEN
           SET ipsplit = 1;
         ELSE
-          SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(provideripstart))/len);
+          SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(provideripstart))/@len);
         END IF;
         #SELECT provideripstart, provideripend, providernodeid;
         SET counter = counter + 1; 
@@ -873,14 +894,14 @@ BEGIN
             IF a = ipsplit THEN
               INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, quju, popipstart, popipend, popid)
               SELECT noc.ipstart, noc.ipend, noc.quju, 
-                INET_ATON(provideripstart) + (a - 1)*len, INET_ATON(provideripend), providernodeid
+                INET_ATON(provideripstart) + (a - 1)*@len, INET_ATON(provideripend), providernodeid
               FROM tmp_tnoc_split_ippool noc
               WHERE INET_ATON(provideripstart) >= noc.ipstart
               AND INET_ATON(provideripend) <= noc.ipend;
             ElSEIF a < ipsplit THEN
               INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, quju, popipstart, popipend, popid)
               SELECT noc.ipstart, noc.ipend, noc.quju, 
-                INET_ATON(provideripstart) + (a - 1)*len, INET_ATON(provideripstart) + a*len-1, providernodeid
+                INET_ATON(provideripstart) + (a - 1)*@len, INET_ATON(provideripstart) + a*@len-1, providernodeid
               FROM tmp_tnoc_split_ippool noc
               WHERE INET_ATON(provideripstart) >= noc.ipstart
               AND INET_ATON(provideripend) <= noc.ipend;
@@ -940,6 +961,39 @@ BEGIN
 END; //
 delimiter ;
 CALL p3a_usrs_in_ippool(128, 'B');
+
+#通过界面输入的参数返回IP段中的用户数
+DROP PROCEDURE IF EXISTS pusrs_in_ippool_fin;
+delimiter //
+CREATE PROCEDURE pusrs_in_ippool_fin(
+  IN iplen VARCHAR(3), IN ipfield VARCHAR(1), IN daylenth VARCHAR(2), IN iptxt VARCHAR(50), IN plat VARCHAR(20))
+BEGIN
+  #DECLARE @sqltext VARCHAR(2000);
+  DECLARE ipcombine VARCHAR(5);
+  SET ipcombine = CONCAT(iplen, ipfield);
+  SET @sqltext = 'SELECT nocipstart, nocipend, nocquju, popipstart, popipend, popname, usrsnum 
+    FROM tusrsinippoolnum ';
+  #添加筛选ip段的sql语句
+  SET @sqltext = CONCAT(@sqltext, ' WHERE ipfield = \'', ipcombine, '\'');
+  #添加筛选时间长度的sql语句 
+  SET @sqltext = CONCAT(@sqltext, ' AND daylen = \'', daylenth, '\'');
+  #添加指定ip地址的筛选条件
+  IF iptxt != '' THEN
+    SET @sqltext = CONCAT(@sqltext, ' AND ', INET_ATON(iptxt) ,' >= INET_ATON(popipstart)');
+    SET @sqltext = CONCAT(@sqltext, ' AND ', INET_ATON(iptxt) ,' <= INET_ATON(popipend)');
+  END IF;
+  #添加指定平台的筛选条件
+  IF plat !='' THEN
+    SET @sqltext = CONCAT(@sqltext, ' AND platform = \'', plat, '\'');
+  END IF;
+  SET @sqltext = CONCAT(@sqltext, ';');
+  SELECT @sqltext;
+  PREPARE STMT FROM @sqltext;
+  EXECUTE STMT;
+END //
+delimiter ;
+
+CALL pusrs_in_ippool_fin('128', 'B', '30', '20.1.1.1', 'HW');
 
 
 
@@ -1618,3 +1672,28 @@ enclosed by '"'
 lines terminated by '\r\n'
 ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
   `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
+
+DROP TABLE IF EXISTS `iptvyw01`.`tusrsinippoolnum`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
+  `nocipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'NOCIP地址段结束',
+  `nocquju` VARCHAR(50) NOT NULL DEFAULT '没有nocquju' COMMENT 'NOC IP段所属区局',
+  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
+  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束',
+  `popid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT 'POP节点唯一ID',
+  `popname` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT 'POP节点名称',
+  `usrsnum` BIGINT NOT NULL DEFAULT 0 COMMENT '用户数量',
+  `platform` VARCHAR(50) NOT NULL DEFAULT '没有platform' COMMENT '所属平台',
+  `ipfield` VARCHAR(50) NOT NULL DEFAULT '没有ipfield' COMMENT 'IP地址段落',
+  `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
+  COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
