@@ -706,9 +706,6 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
   PRIMARY KEY (`loginname`),
   UNIQUE INDEX `uqidx_t3a_usr_loginname` (`loginname` ASC)
-  #INDEX `idx_3a_usr_adslname` (`adslname` ASC),
-  #INDEX `idx_t3a_usr_ipaddr` (`ipaddr` ASC),
-  #INDEX `idx_t3a_usr_logintime` (`logintime` ASC)
   );
 truncate table t3a_usr;
 load data local infile '/home/xknight/django/t3a_usr.csv' replace INTO table t3a_usr character 
@@ -777,11 +774,15 @@ BEGIN
   #根据输入参数，计算分割的IP段长度。根据根据
 
   DECLARE len INT;
+  DECLARE maskpoint VARCHAR(20);
   CALL p3a_calciplen(iplen, ipf, @len);
   IF @len = 0 THEN
     #@TODO: 报出异常直接退出。
     SELECT @len;
   END IF;
+  #根据字符串的子网掩码查出点分十进制子网掩码
+  SELECT netmaskpoint INTO maskpoint FROM `iptvyw01`.`tdic_netmask`
+  WHERE netmaskstr = CONCAT(iplen, ipf);
 
   #创建临时表存放分割后的IP地址信息
   DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
@@ -860,8 +861,9 @@ BEGIN
     DECLARE provideripend VARCHAR(50);
     DECLARE providernodeid VARCHAR(50);
     DECLARE ipsplit BIGINT;
-    DECLARE counter BIGINT DEFAULT 0;
     DECLARE a BIGINT DEFAULT 1;
+    DECLARE startip VARCHAR(20);
+    DECLARE endip VARCHAR(20);
     DECLARE provider_ip_cur CURSOR FOR 
       SELECT ipstart, ipend, nodeid FROM thwiparea;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET pro_end = 1;
@@ -874,7 +876,7 @@ BEGIN
           SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(provideripstart))/@len);
         END IF;
         #SELECT provideripstart, provideripend, providernodeid;
-        SET counter = counter + 1; 
+        #SET counter = counter + 1; 
         /*SELECT counter;
         SELECT ipsplit;
         SELECT INET_NTOA(noc.ipstart), INET_NTOA(noc.ipend)
@@ -890,22 +892,31 @@ BEGIN
             AND INET_ATON(provideripend) <= noc.ipend;
         ELSEIF ipsplit > 1 THEN
           WHILE a <= ipsplit DO
+            CALL putil_calc_sip_eip(provideripstart, maskpoint, @startip, @endip);
             IF a = ipsplit THEN
               INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
               SELECT noc.ipstart, noc.ipend, noc.quju, 
-                INET_ATON(provideripstart) + (a - 1)*@len, INET_ATON(provideripend), providernodeid, 
+                INET_ATON(@startip) + (a - 1)*@len, INET_ATON(provideripend), providernodeid, 
                 CONCAT(iplen, ipf), CONCAT(dayl,''), 'HW'
               FROM tmp_tnoc_split_ippool noc
-              WHERE INET_ATON(provideripstart) >= noc.ipstart
+              WHERE (INET_ATON(@startip) + (a - 1)*@len) >= noc.ipstart
               AND INET_ATON(provideripend) <= noc.ipend;
             ElSEIF a < ipsplit THEN
               INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
               SELECT noc.ipstart, noc.ipend, noc.quju, 
-                INET_ATON(provideripstart) + (a - 1)*@len, INET_ATON(provideripstart) + a*@len-1, providernodeid,
+                INET_ATON(@startip) + (a - 1)*@len, INET_ATON(@startip) + a*@len-1, providernodeid,
+                CONCAT(iplen, ipf), CONCAT(dayl,''), 'HW'
+              FROM tmp_tnoc_split_ippool noc
+              WHERE (INET_ATON(@startip) + (a - 1)*@len) >= noc.ipstart
+              AND (INET_ATON(@startip) + a*@len-1) <= noc.ipend;
+            ElSEIF a = 1 THEN
+              INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
+              SELECT noc.ipstart, noc.ipend, noc.quju, 
+                INET_ATON(provideripstart) + (a - 1)*@len, INET_ATON(@startip) + a*@len-1, providernodeid,
                 CONCAT(iplen, ipf), CONCAT(dayl,''), 'HW'
               FROM tmp_tnoc_split_ippool noc
               WHERE INET_ATON(provideripstart) >= noc.ipstart
-              AND INET_ATON(provideripend) <= noc.ipend;
+              AND INET_ATON(@endip) <= noc.ipend;
             END IF;
             SET a = a + 1;
           END WHILE;
@@ -959,10 +970,10 @@ BEGIN
   FROM tmp_tusr_in_provider_ippool pro, thwsheji sj
   WHERE pro.popid = sj.popid;
   COMMIT;
-  DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
+  #DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
 END; //
 delimiter ;
-CALL p3a_usrs_in_ippool(1, 'B', 1);
+CALL p3a_usrs_in_ippool(1, 'B', 2);
 
 
 #通过界面输入的参数返回IP段中的用户数
@@ -998,6 +1009,59 @@ END //
 delimiter ;
 
 CALL pusrs_in_ippool_fin('1', 'B', '1', 'HW','');
+
+#输入IP地址和子网掩码计算出开始IP和结束IP地址。
+DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
+delimiter //
+CREATE PROCEDURE putil_calc_sip_eip(IN clientip VARCHAR(20), IN netmask VARCHAR(20), 
+  OUT sip VARCHAR(20), OUT eip VARCHAR(20)
+    )
+BEGIN
+  IF netmask != '' THEN
+    SET sip = INET_NTOA(inet_aton(clientip)&inet_aton(netmask));
+    SET eip = INET_NTOA(inet_aton(sip) + (pow(2,32) - inet_aton(netmask) - 1));
+  #ELSE
+    #@TODO:报出一个异常退出。
+  #  ;
+  END IF;
+END //
+delimiter ;
+CALL putil_calc_sip_eip('12.12.128.148', '255.255.0.0', @sip, @eip);
+SELECT @sip, @eip;
+
+DROP TABLE IF EXISTS `iptvyw01`.`tdic_netmask`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tdic_netmask`(
+  `netmaskstr` VARCHAR(20) NULL COMMENT '子网掩码的字符表示，如1B，2B',
+  `netmaskpoint`  VARCHAR(20) NULL COMMENT '子网掩码的点分十进制表示',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`netmaskstr`),
+  UNIQUE INDEX `idx_tdic_netmask_str` (`netmaskstr` ASC));
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('1B','255.255.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('2B','255.254.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('4B','255.252.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('8B','255.248.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('16B','255.240.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('32B','255.224.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('64B','255.192.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('128B','255.128.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('128C','255.255.128.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('64C','255.255.192.0', NOW(), NOW(), USER(), user());
 
 
 
