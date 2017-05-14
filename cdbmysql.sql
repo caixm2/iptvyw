@@ -708,7 +708,8 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   UNIQUE INDEX `uqidx_t3a_usr_loginname` (`loginname` ASC)
   );
 truncate table t3a_usr;
-load data local infile '/home/xknight/django/t3a_usr.csv' replace INTO table t3a_usr character 
+load data local infile '/home/xknight/django/t3a_usr.csv' 
+replace INTO table t3a_usr character 
 set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
 ignore 1 lines;
 truncate TABLE t3a_usr;
@@ -1734,7 +1735,17 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`thwiparea` (
 truncate table `iptvyw01`.`thwiparea`;
 load data local infile '/home/caixiaoming/django/thwiparea.csv' 
 replace INTO table thwiparea 
-character set utf8 fields 
+character set gbk fields 
+terminated by ',' 
+enclosed by '"' 
+lines terminated by '\r\n'
+ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
+  `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
+
+truncate table `iptvyw01`.`thwiparea`;
+load data local infile '/home/xknight/django/thwiparea.csv' 
+replace INTO table thwiparea 
+character set gbk fields 
 terminated by ',' 
 enclosed by '"' 
 lines terminated by '\r\n'
