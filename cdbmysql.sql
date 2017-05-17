@@ -687,27 +687,10 @@ CREATE TABLE `iptvyw01`.`thwDayRptAreaSum` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `idx_thwDayRptAreaSum_id` (`id` ASC));
 
-DROP TABLE IF EXISTS `iptvyw01`.`t3a_usr`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
-  `adslname` VARCHAR(20) NOT NULL  COMMENT '设备编号，用户大AD' ,
-  `loginname` VARCHAR(30) NOT NULL COMMENT 'IPTV账号',
-  `ipaddr` VARCHAR(50)  COMMENT '用户IP地址',
-  `logintime` VARCHAR(20) COMMENT '最后一次登陆时间',
-  `status` VARCHAR(5) COMMENT '账号状态',
-  `platform` VARCHAR(20) COMMENT '对应到平台',
-  `fj_name` VARCHAR(50) COMMENT '分局名字',
-  `quju` VARCHAR(50) COMMENT '区局名字',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
-  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
-  PRIMARY KEY (`loginname`),
-  UNIQUE INDEX `uqidx_t3a_usr_loginname` (`loginname` ASC)
-  );
-
+DROP PROCEDURE IF EXISTS `iptvyw01`.`pdrop_create_t3a_usr`;
+delimiter //
+CREATE PROCEDURE `iptvyw01`.`pdrop_create_t3a_usr`()
+BEGIN
 DROP TABLE IF EXISTS `iptvyw01`.`t3a_usr`;
 CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `adslname` VARCHAR(20) NOT NULL  COMMENT '设备编号，用户大AD' ,
@@ -726,6 +709,8 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0'
   );
+END; //
+delimiter ;
 ALTER TABLE t3a_usr ADD PRIMARY KEY(`loginname`);
 
 truncate table t3a_usr;
@@ -1026,6 +1011,8 @@ CALL p3a_usrs_in_ippool('16B', 5, 'HW');
 CALL p3a_usrs_in_ippool('32B', 5, 'HW');
 CALL p3a_usrs_in_ippool('64B', 5, 'HW');
 CALL p3a_usrs_in_ippool('128B', 5, 'HW');
+CALL p3a_usrs_in_ippool('64C', 5, 'HW');
+CALL p3a_usrs_in_ippool('128C', 5, 'HW');
 CALL p3a_usrs_in_ippool('1B', 31, 'HW');
 CALL p3a_usrs_in_ippool('2B', 31, 'HW');
 CALL p3a_usrs_in_ippool('4B', 31, 'HW');
@@ -1034,22 +1021,21 @@ CALL p3a_usrs_in_ippool('16B', 31, 'HW');
 CALL p3a_usrs_in_ippool('32B', 31, 'HW');
 CALL p3a_usrs_in_ippool('64B', 31, 'HW');
 CALL p3a_usrs_in_ippool('128B', 31, 'HW');
-
+CALL p3a_usrs_in_ippool('64C', 31, 'HW');
+CALL p3a_usrs_in_ippool('128C', 31, 'HW');
 
 #通过界面输入的参数返回IP段中的用户数
 DROP PROCEDURE IF EXISTS pusrs_in_ippool_fin;
 delimiter //
 CREATE PROCEDURE pusrs_in_ippool_fin(
-  IN iplen VARCHAR(3), IN ipfield VARCHAR(1), IN daylenth VARCHAR(2), 
+  IN iplen VARCHAR(5), IN daylenth VARCHAR(2), 
   IN plat VARCHAR(20), IN iptxt VARCHAR(50), IN zero VARCHAR(2))
 BEGIN
   #DECLARE @sqltext VARCHAR(2000);
-  DECLARE ipcombine VARCHAR(5);
-  SET ipcombine = CONCAT(iplen, ipfield);
   SET @sqltext = 'SELECT nocipstart, nocipend, nocquju, popipstart, popipend, popname, usrnum, platform 
     FROM tusrsinippoolnum ';
   #添加筛选ip段的sql语句
-  SET @sqltext = CONCAT(@sqltext, ' WHERE ipfield = \'', ipcombine, '\'');
+  SET @sqltext = CONCAT(@sqltext, ' WHERE ipfield = \'', iplen, '\'');
   #添加筛选时间长度的sql语句 
   SET @sqltext = CONCAT(@sqltext, ' AND daylen = \'', daylenth, '\'');
   #添加指定ip地址的筛选条件
@@ -1061,7 +1047,7 @@ BEGIN
   IF plat !='' THEN
     SET @sqltext = CONCAT(@sqltext, ' AND platform like \'', plat, '%\'');
   END IF;
-  IF zero != 'Y' THEN
+  IF zero = 'N' THEN
     SET @sqltext = CONCAT(@sqltext, ' AND usrnum > 0');
   END IF;
   SET @sqltext = CONCAT(@sqltext, ' ORDER BY INET_ATON(nocipstart), INET_ATON(popipstart)');
@@ -1072,7 +1058,7 @@ BEGIN
 END; //
 delimiter ;
 
-CALL pusrs_in_ippool_fin('1', 'B', '31', 'HW','','');
+CALL pusrs_in_ippool_fin('1B', '31', 'HW','','');
 
 #输入IP地址和子网掩码计算出开始IP和结束IP地址。
 DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
