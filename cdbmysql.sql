@@ -707,6 +707,27 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   PRIMARY KEY (`loginname`),
   UNIQUE INDEX `uqidx_t3a_usr_loginname` (`loginname` ASC)
   );
+
+DROP TABLE IF EXISTS `iptvyw01`.`t3a_usr`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
+  `adslname` VARCHAR(20) NOT NULL  COMMENT '设备编号，用户大AD' ,
+  `loginname` VARCHAR(30) NOT NULL COMMENT 'IPTV账号',
+  `ipaddr` VARCHAR(50)  COMMENT '用户IP地址',
+  `logintime` VARCHAR(20) COMMENT '最后一次登陆时间',
+  `status` VARCHAR(5) COMMENT '账号状态',
+  `platform` VARCHAR(20) COMMENT '对应到平台',
+  `fj_name` VARCHAR(50) COMMENT '分局名字',
+  `quju` VARCHAR(50) COMMENT '区局名字',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0'
+  );
+ALTER TABLE t3a_usr ADD PRIMARY KEY(`loginname`);
+
 truncate table t3a_usr;
 load data local infile '/home/xknight/django/t3a_usr.csv' 
 replace INTO table t3a_usr character 
@@ -730,8 +751,7 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tnoc_usr_ippool` (
   `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
-  PRIMARY KEY (`ipstart`),
-  UNIQUE INDEX `idx_tnoc_usr_ippool_ipstart` (`ipstart` ASC));
+  PRIMARY KEY (`ipstart`));
 truncate table tnoc_usr_ippool;
 load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' 
 replace INTO table tnoc_usr_ippool character 
@@ -753,7 +773,8 @@ set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
     `ipstart` VARCHAR(50) NOT NULL  COMMENT 'NOC IP地址段开始' ,
     `ipend` VARCHAR(50) NOT NULL COMMENT 'NOC IP地址段结束',
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
-    `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
+    `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数',
+    INDEX idx_tnoc_split_ippool_ipstart (ipstart)
   );
   #
   DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusr_in_provider_ippool`;
@@ -771,93 +792,36 @@ set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
   `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔'
   );
 
-  DROP TABLE IF EXISTS `iptvyw01`.`tmp_t3a_not_in_ippool`;
-  CREATE TABLE IF NOT EXISTS `iptvyw01`.`tmp_t3a_not_in_ippool` (
-  `ipaddr` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔'
+  DROP TABLE IF EXISTS `iptvyw01`.`tmp_t3a_usrs_in_ippool`;
+  CREATE TABLE IF NOT EXISTS `iptvyw01`.`tmp_t3a_usrs_in_ippool` (
+  `ipaddr` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
+  PRIMARY KEY (ipaddr)
   );
 
 
 DROP PROCEDURE IF EXISTS p3a_calciplen;
 delimiter //
 CREATE PROCEDURE p3a_calciplen(
-  IN iplen INT, IN ipfield VARCHAR(1), OUT olen INT)
+  IN iplen VARCHAR(5), OUT olen INT)
 BEGIN
   DECLARE clen INT DEFAULT 256;  #定义C段IP长度。
   DECLARE blen INT DEFAULT 65536;  #定义B段IP长度
+  DECLARE ipfield VARCHAR(1);
+  DECLARE ipnum VARCHAR(2);
+  SET ipfield = substring(iplen, -1);
+  SET ipnum = left(iplen,locate(substring(iplen,-1),iplen)-1);
   #DECLARE len INT DEFAULT 0;
   IF ipfield = "C" THEN
-    SET olen = iplen * clen;
+    SET olen = ipnum * clen;
   ElSEIF ipfield = "B" THEN
-    SET olen = iplen * blen;
+    SET olen = ipnum * blen;
   ELSE
     SET olen = 0;
   END IF;
 END //
 delimiter ;
-CALL p3a_calciplen(128, 'B', @len);
+CALL p3a_calciplen('128B', @len);
 SELECT @len;
-
-#
-DROP PROCEDURE IF EXISTS p3a_usrs_in_ippool;
-delimiter //
-CREATE PROCEDURE p3a_usrs_in_ippool(IN iplen INT, IN ipf VARCHAR(1), IN dayl INT(3))
-BEGIN
-  #根据输入参数，计算分割的IP段长度。根据根据
-
-  DECLARE len INT;
-
-  CALL p3a_calciplen(iplen, ipf, @len);
-  #@TODO: @len=0报出异常直接退出。 
-
-  #根据IP段长度分割NOC的IP段。
-  CALL pnoc_ip_split(@len);
-
-  #将华为地址段合入NOC表中
-  CALL pprovider_ip_split(iplen, ipf , dayl , @len);
-
-  TRUNCATE TABLE `iptvyw01`.`tmp_t3a_not_in_ippool`;
-  
-  #根据用户IP对比各IP地址段，计算出各段IP中的用户人数。
-  BEGIN
-    DECLARE usr_ip VARCHAR(50);
-    DECLARE usr_plat VARCHAR(50);
-    DECLARE done INT DEFAULT 0;
-    DECLARE usr_ip_cur CURSOR FOR 
-      SELECT trim(ipaddr) FROM t3a_usr
-      WHERE unix_timestamp(logintime) >  unix_timestamp(date_sub(curdate(), interval dayl day))
-      AND  platform like 'HW%';
-    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
-    OPEN usr_ip_cur;
-    
-    REPEAT
-      FETCH usr_ip_cur INTO usr_ip;
-      IF NOT done THEN
-            #计算用户IP属于某段IP中的数量并更新平台属性。
-            UPDATE tmp_tusr_in_provider_ippool SET usrnum = usrnum + 1
-            WHERE INET_ATON(usr_ip) >= popipstart AND INET_ATON(usr_ip) <= popipend;
-            INSERT INTO tmp_t3a_not_in_ippool (ipaddr)
-            SELECT INET_ATON(usr_ip) FROM tmp_tusr_in_provider_ippool
-            WHERE INET_ATON(usr_ip) >= popipstart AND INET_ATON(usr_ip) <= popipend;
-      END IF;
-    UNTIL done END REPEAT;
-    COMMIT;
-    CLOSE usr_ip_cur;
-  END;
-
-  #将临时表中的数据导入正式表中
-  TRUNCATE TABLE tusrsinippoolnum;
-  INSERT INTO tusrsinippoolnum(nocipstart, nocipend, nocquju, popipstart, popipend, popid, popname,
-    usrnum, platform, ipfield, daylen, updatetime, createowner, updateowner)
-  SELECT INET_NTOA(pro.nocipstart), INET_NTOA(pro.nocipend), pro.nocquju, 
-    INET_NTOA(pro.popipstart), INET_NTOA(pro.popipend), pro.popid, sj.jdname, 
-    pro.usrnum , pro.platform, pro.ipfield, pro.daylen, now(), user(), user()
-  FROM tmp_tusr_in_provider_ippool pro, thwsheji sj
-  WHERE pro.popid = sj.popid;
-  COMMIT;
-  #DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
-END; //
-delimiter ;
-CALL p3a_usrs_in_ippool(1, 'B', 4);
 
 #将NOC的IP池按规定长度切割后存入表格中
 DROP PROCEDURE IF EXISTS pnoc_ip_split;
@@ -905,7 +869,7 @@ CALL pnoc_ip_split('65536');
 #将厂商IP池和NOCIP池合并入临时表
 DROP PROCEDURE IF EXISTS `iptvyw01`.`pprovider_ip_split`;
 delimiter //
-CREATE PROCEDURE pprovider_ip_split(IN iplen INT, IN ipf VARCHAR(1), IN dayl INT(3), IN ipl INT)
+CREATE PROCEDURE pprovider_ip_split(IN iplen VARCHAR(5), IN dayl INT(3), IN ipl INT)
 BEGIN
   DECLARE pro_end INT DEFAULT 0;
   DECLARE provideripstart VARCHAR(50);
@@ -928,7 +892,7 @@ BEGIN
   TRUNCATE TABLE `iptvyw01`.`tmp_tusr_in_provider_ippool`;
   #根据字符串的子网掩码查出点分十进制子网掩码
   SELECT netmaskpoint INTO maskpoint FROM `iptvyw01`.`tdic_netmask`
-  WHERE netmaskstr = CONCAT(iplen, ipf);
+  WHERE netmaskstr = iplen;
   OPEN provider_ip_cur;
     FETCH NEXT FROM provider_ip_cur INTO provideripstart, provideripend, providernodeid, providerflat;
     WHILE pro_end = 0 DO
@@ -941,7 +905,7 @@ BEGIN
       IF ipsplit = 1 THEN
         INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
         SELECT noc.ipstart, noc.ipend, noc.quju, INET_ATON(provideripstart), INET_ATON(provideripend), 
-            providernodeid, CONCAT(iplen, ipf), CONCAT(dayl,''), providerflat
+            providernodeid, iplen, CONCAT(dayl,''), providerflat
           FROM tmp_tnoc_split_ippool noc
           WHERE INET_ATON(provideripstart) >= noc.ipstart
           AND INET_ATON(provideripend) <= noc.ipend;
@@ -951,7 +915,7 @@ BEGIN
             INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
             SELECT noc.ipstart, noc.ipend, noc.quju, 
               INET_ATON(provideripstart), INET_ATON(@startip) + a*iplen-1, providernodeid,
-              CONCAT(iplen, ipf), CONCAT(dayl,''), providerflat
+              iplen, CONCAT(dayl,''), providerflat
             FROM tmp_tnoc_split_ippool noc
             WHERE INET_ATON(provideripstart) >= noc.ipstart
             AND INET_ATON(@endip) <= noc.ipend;
@@ -959,7 +923,7 @@ BEGIN
             INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
             SELECT noc.ipstart, noc.ipend, noc.quju, 
               INET_ATON(@startip) + (a - 1)*@len, INET_ATON(provideripend), providernodeid, 
-              CONCAT(iplen, ipf), CONCAT(dayl,''), providerflat
+              iplen, CONCAT(dayl,''), providerflat
             FROM tmp_tnoc_split_ippool noc
             WHERE (INET_ATON(@startip) + (a - 1)*iplen) >= noc.ipstart
             AND INET_ATON(provideripend) <= noc.ipend;
@@ -967,7 +931,7 @@ BEGIN
             INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
             SELECT noc.ipstart, noc.ipend, noc.quju, 
               INET_ATON(@startip) + (a - 1)*iplen, INET_ATON(@startip) + a*iplen-1, providernodeid,
-              CONCAT(iplen, ipf), CONCAT(dayl,''), providerflat
+              iplen, CONCAT(dayl,''), providerflat
             FROM tmp_tnoc_split_ippool noc
             WHERE (INET_ATON(@startip) + (a - 1)*iplen) >= noc.ipstart
             AND (INET_ATON(@startip) + a*iplen-1) <= noc.ipend;
@@ -982,13 +946,102 @@ BEGIN
   CLOSE provider_ip_cur;
 END //
 delimiter ;
-CALL pprovider_ip_split(1,'B',4, 65536);
+CALL pprovider_ip_split('1B',4, 65536);
+
+#将3a中的用户根据IP地址统计同一IP段内的用户数。
+DROP PROCEDURE IF EXISTS p3a_sum_usrs_in_pool;
+delimiter //
+CREATE PROCEDURE p3a_sum_usrs_in_pool(IN dayl INT(3), IN platform VARCHAR(20))
+  BEGIN
+    DECLARE usr_ip VARCHAR(50);
+    DECLARE usr_plat VARCHAR(50);
+    DECLARE done INT DEFAULT 0;
+    DECLARE usr_ip_cur CURSOR FOR 
+      SELECT trim(ipaddr) FROM t3a_usr
+      WHERE unix_timestamp(logintime) >  unix_timestamp(date_sub(curdate(), interval dayl day))
+      AND  platform like CONCAT(platform, '%');
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+    OPEN usr_ip_cur;
+    
+    REPEAT
+      FETCH usr_ip_cur INTO usr_ip;
+      IF NOT done THEN
+            #计算用户IP属于某段IP中的数量并更新平台属性。
+            UPDATE tmp_tusr_in_provider_ippool SET usrnum = usrnum + 1
+            WHERE INET_ATON(usr_ip) >= popipstart AND INET_ATON(usr_ip) <= popipend;
+            #INSERT INTO tmp_t3a_usrs_in_ippool (ipaddr)
+            #SELECT INET_ATON(usr_ip) FROM tmp_tusr_in_provider_ippool
+            #WHERE INET_ATON(usr_ip) >= popipstart AND INET_ATON(usr_ip) <= popipend;
+      END IF;
+    UNTIL done END REPEAT;
+    COMMIT;
+    CLOSE usr_ip_cur;
+  END; //
+delimiter ;
+CALL p3a_sum_usrs_in_pool(4 , 'HW');
+
+
+#
+DROP PROCEDURE IF EXISTS p3a_usrs_in_ippool;
+delimiter //
+CREATE PROCEDURE p3a_usrs_in_ippool(IN iplen VARCHAR(5), IN dayl INT(3), IN platform VARCHAR(20))
+BEGIN
+  
+  #根据输入参数，计算分割的IP段长度。根据根据
+
+  DECLARE len INT;
+
+  CALL p3a_calciplen(iplen, @len);
+  #@TODO: @len=0报出异常直接退出。 
+
+  #根据IP段长度分割NOC的IP段。
+  CALL pnoc_ip_split(@len);
+
+  #将华为地址段合入NOC表中
+  CALL pprovider_ip_split(iplen, dayl , @len);
+
+  TRUNCATE TABLE `iptvyw01`.`tmp_t3a_usrs_in_ippool`;
+  
+  #根据用户IP对比各IP地址段，计算出各段IP中的用户人数。
+  CALL p3a_sum_usrs_in_pool(dayl , platform);
+
+  #将临时表中的数据导入正式表中
+
+  INSERT INTO tusrsinippoolnum(nocipstart, nocipend, nocquju, popipstart, popipend, popid, popname,
+    usrnum, platform, ipfield, daylen, updatetime, createowner, updateowner)
+  SELECT INET_NTOA(pro.nocipstart), INET_NTOA(pro.nocipend), pro.nocquju, 
+    INET_NTOA(pro.popipstart), INET_NTOA(pro.popipend), pro.popid, sj.jdname, 
+    pro.usrnum , pro.platform, pro.ipfield, pro.daylen, now(), user(), user()
+  FROM tmp_tusr_in_provider_ippool pro, thwsheji sj
+  WHERE pro.popid = sj.popid;
+  COMMIT;
+END; //
+delimiter ;
+TRUNCATE TABLE tusrsinippoolnum;
+CALL p3a_usrs_in_ippool('1B', 5, 'HW');
+CALL p3a_usrs_in_ippool('2B', 5, 'HW');
+CALL p3a_usrs_in_ippool('4B', 5, 'HW');
+CALL p3a_usrs_in_ippool('8B', 5, 'HW');
+CALL p3a_usrs_in_ippool('16B', 5, 'HW');
+CALL p3a_usrs_in_ippool('32B', 5, 'HW');
+CALL p3a_usrs_in_ippool('64B', 5, 'HW');
+CALL p3a_usrs_in_ippool('128B', 5, 'HW');
+CALL p3a_usrs_in_ippool('1B', 31, 'HW');
+CALL p3a_usrs_in_ippool('2B', 31, 'HW');
+CALL p3a_usrs_in_ippool('4B', 31, 'HW');
+CALL p3a_usrs_in_ippool('8B', 31, 'HW');
+CALL p3a_usrs_in_ippool('16B', 31, 'HW');
+CALL p3a_usrs_in_ippool('32B', 31, 'HW');
+CALL p3a_usrs_in_ippool('64B', 31, 'HW');
+CALL p3a_usrs_in_ippool('128B', 31, 'HW');
+
 
 #通过界面输入的参数返回IP段中的用户数
 DROP PROCEDURE IF EXISTS pusrs_in_ippool_fin;
 delimiter //
 CREATE PROCEDURE pusrs_in_ippool_fin(
-  IN iplen VARCHAR(3), IN ipfield VARCHAR(1), IN daylenth VARCHAR(2), IN plat VARCHAR(20), IN iptxt VARCHAR(50))
+  IN iplen VARCHAR(3), IN ipfield VARCHAR(1), IN daylenth VARCHAR(2), 
+  IN plat VARCHAR(20), IN iptxt VARCHAR(50), IN zero VARCHAR(2))
 BEGIN
   #DECLARE @sqltext VARCHAR(2000);
   DECLARE ipcombine VARCHAR(5);
@@ -1008,15 +1061,18 @@ BEGIN
   IF plat !='' THEN
     SET @sqltext = CONCAT(@sqltext, ' AND platform like \'', plat, '%\'');
   END IF;
+  IF zero != 'Y' THEN
+    SET @sqltext = CONCAT(@sqltext, ' AND usrnum > 0');
+  END IF;
   SET @sqltext = CONCAT(@sqltext, ' ORDER BY INET_ATON(nocipstart), INET_ATON(popipstart)');
   SET @sqltext = CONCAT(@sqltext, ';');
   #SELECT @sqltext;
   PREPARE STMT FROM @sqltext;
   EXECUTE STMT;
-END //
+END; //
 delimiter ;
 
-CALL pusrs_in_ippool_fin('1', 'B', '1', 'HW','');
+CALL pusrs_in_ippool_fin('1', 'B', '31', 'HW','','');
 
 #输入IP地址和子网掩码计算出开始IP和结束IP地址。
 DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
@@ -1070,7 +1126,7 @@ INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, upd
 VALUES('128C','255.255.128.0', NOW(), NOW(), USER(), user());
 INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
 VALUES('64C','255.255.192.0', NOW(), NOW(), USER(), user());
-
+COMMIT;
 
 
 DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
@@ -1760,6 +1816,31 @@ ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
   `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
 
 DROP TABLE IF EXISTS `iptvyw01`.`tusrsinippoolnum`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
+  `nocipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'NOCIP地址段结束',
+  `nocquju` VARCHAR(50) NOT NULL DEFAULT '没有nocquju' COMMENT 'NOC IP段所属区局',
+  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
+  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束',
+  `popid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT 'POP节点唯一ID',
+  `popname` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT 'POP节点名称',
+  `usrnum` BIGINT NOT NULL DEFAULT 0 COMMENT '用户数量',
+  `platform` VARCHAR(50) NOT NULL DEFAULT '没有platform' COMMENT '所属平台',
+  `ipfield` VARCHAR(50) NOT NULL DEFAULT '没有ipfield' COMMENT 'IP地址段落',
+  `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
+  COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusrsinippoolnum`;
 CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
   `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
