@@ -709,9 +709,17 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
   `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
   `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0'
   );
+
 END; //
 delimiter ;
-ALTER TABLE t3a_usr ADD PRIMARY KEY(`loginname`);
+#ALTER TABLE t3a_usr ADD PRIMARY KEY(`loginname`);
+CALL iptvyw01.pdrop_create_t3a_usr();
+load data local infile '/home/xknight/django/t3a_usr.csv' 
+replace INTO table t3a_usr character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
+ignore 1 lines;
+ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_ipaddr(`ipaddr`);
+ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_logintime(`logintime`);
 
 truncate table t3a_usr;
 load data local infile '/home/xknight/django/t3a_usr.csv' 
@@ -792,7 +800,7 @@ BEGIN
   DECLARE clen INT DEFAULT 256;  #定义C段IP长度。
   DECLARE blen INT DEFAULT 65536;  #定义B段IP长度
   DECLARE ipfield VARCHAR(1);
-  DECLARE ipnum VARCHAR(2);
+  DECLARE ipnum VARCHAR(4);
   SET ipfield = substring(iplen, -1);
   SET ipnum = left(iplen,locate(substring(iplen,-1),iplen)-1);
   #DECLARE len INT DEFAULT 0;
@@ -805,13 +813,13 @@ BEGIN
   END IF;
 END //
 delimiter ;
-CALL p3a_calciplen('128B', @len);
+CALL p3a_calciplen('128C', @len);
 SELECT @len;
 
 #将NOC的IP池按规定长度切割后存入表格中
 DROP PROCEDURE IF EXISTS pnoc_ip_split;
 delimiter //
-CREATE PROCEDURE pnoc_ip_split(IN iplen VARCHAR(5))
+CREATE PROCEDURE pnoc_ip_split(IN iplen INT)
 BEGIN
   DECLARE noc_end INT DEFAULT 0;
   DECLARE noc_ipstart VARCHAR(50);
@@ -849,7 +857,7 @@ BEGIN
     CLOSE  noc_ip_cur;
 END //
 delimiter ;
-CALL pnoc_ip_split('65536');
+CALL pnoc_ip_split(131072);
 
 #将厂商IP池和NOCIP池合并入临时表
 DROP PROCEDURE IF EXISTS `iptvyw01`.`pprovider_ip_split`;
@@ -1003,26 +1011,14 @@ BEGIN
 END; //
 delimiter ;
 TRUNCATE TABLE tusrsinippoolnum;
-CALL p3a_usrs_in_ippool('1B', 5, 'HW');
-CALL p3a_usrs_in_ippool('2B', 5, 'HW');
-CALL p3a_usrs_in_ippool('4B', 5, 'HW');
-CALL p3a_usrs_in_ippool('8B', 5, 'HW');
-CALL p3a_usrs_in_ippool('16B', 5, 'HW');
-CALL p3a_usrs_in_ippool('32B', 5, 'HW');
-CALL p3a_usrs_in_ippool('64B', 5, 'HW');
-CALL p3a_usrs_in_ippool('128B', 5, 'HW');
-CALL p3a_usrs_in_ippool('64C', 5, 'HW');
-CALL p3a_usrs_in_ippool('128C', 5, 'HW');
-CALL p3a_usrs_in_ippool('1B', 31, 'HW');
-CALL p3a_usrs_in_ippool('2B', 31, 'HW');
-CALL p3a_usrs_in_ippool('4B', 31, 'HW');
-CALL p3a_usrs_in_ippool('8B', 31, 'HW');
-CALL p3a_usrs_in_ippool('16B', 31, 'HW');
-CALL p3a_usrs_in_ippool('32B', 31, 'HW');
-CALL p3a_usrs_in_ippool('64B', 31, 'HW');
-CALL p3a_usrs_in_ippool('128B', 31, 'HW');
-CALL p3a_usrs_in_ippool('64C', 31, 'HW');
-CALL p3a_usrs_in_ippool('128C', 31, 'HW');
+CALL p3a_usrs_in_ippool('1B', 7, 'HW');
+CALL p3a_usrs_in_ippool('2B', 7, 'HW');
+CALL p3a_usrs_in_ippool('4B', 7, 'HW');
+CALL p3a_usrs_in_ippool('128C', 7, 'HW');
+CALL p3a_usrs_in_ippool('1B', 38, 'HW');
+CALL p3a_usrs_in_ippool('2B', 38, 'HW');
+CALL p3a_usrs_in_ippool('4B', 38, 'HW');
+CALL p3a_usrs_in_ippool('128C', 38, 'HW');
 
 #通过界面输入的参数返回IP段中的用户数
 DROP PROCEDURE IF EXISTS `iptvyw01`.`pusrs_in_ippool_fin`;
