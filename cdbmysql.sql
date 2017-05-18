@@ -1025,9 +1025,9 @@ CALL p3a_usrs_in_ippool('64C', 31, 'HW');
 CALL p3a_usrs_in_ippool('128C', 31, 'HW');
 
 #通过界面输入的参数返回IP段中的用户数
-DROP PROCEDURE IF EXISTS pusrs_in_ippool_fin;
+DROP PROCEDURE IF EXISTS `iptvyw01`.`pusrs_in_ippool_fin`;
 delimiter //
-CREATE PROCEDURE pusrs_in_ippool_fin(
+CREATE PROCEDURE `iptvyw01`.`pusrs_in_ippool_fin`(
   IN iplen VARCHAR(5), IN daylenth VARCHAR(2), 
   IN plat VARCHAR(20), IN iptxt VARCHAR(50), IN zero VARCHAR(2))
 BEGIN
