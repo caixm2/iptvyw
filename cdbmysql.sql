@@ -1050,7 +1050,7 @@ BEGIN
   IF zero = 'N' THEN
     SET @sqltext = CONCAT(@sqltext, ' AND usrnum > 0');
   END IF;
-  SET @sqltext = CONCAT(@sqltext, ' ORDER BY INET_ATON(nocipstart), INET_ATON(popipstart)');
+  SET @sqltext = CONCAT(@sqltext, ' ORDER BY popname, nocquju, INET_ATON(nocipstart), INET_ATON(popipstart)');
   SET @sqltext = CONCAT(@sqltext, ';');
   #SELECT @sqltext;
   PREPARE STMT FROM @sqltext;
