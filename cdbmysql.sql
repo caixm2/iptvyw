@@ -769,7 +769,7 @@ set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
     `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
     `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数',
     INDEX idx_tnoc_split_ippool_ipstart (`ipstart`),
-    INDEX idx_tnoc_split_ippool_ipstart (`ipend`)
+    INDEX idx_tnoc_split_ippool_ipsend (`ipend`)
   );
   #
 
@@ -779,7 +779,7 @@ set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
   INDEX idx_t3a_usrs_in_ippool_ipaddr (`ipaddr`)
   );
 
-  #创建中兴月报表
+#创建中兴POP点IP地址表
 DROP TABLE IF EXISTS tzteiparea;
 CREATE TABLE `iptvyw01`.`tzteiparea` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
@@ -806,7 +806,13 @@ terminated by ','
 enclosed by '"' 
 lines terminated by '\n'
 (`nodename`,`nodeid`,`ipstart`,`ipend`, `epgprovider`);
-
+load data local infile '/home/xknight/django/tzteiparea.csv' 
+replace INTO table tzteiparea 
+character set gbk fields 
+terminated by ',' 
+enclosed by '"' 
+lines terminated by '\n'
+(`nodename`,`nodeid`,`ipstart`,`ipend`, `epgprovider`);
 
 DROP PROCEDURE IF EXISTS p3a_calciplen;
 delimiter //
@@ -1066,14 +1072,18 @@ BEGIN
 END; //
 delimiter ;
 TRUNCATE TABLE tusrsinippoolnum;
-CALL p3a_usrs_in_ippool('1B', 14, 'ZTE');
-CALL p3a_usrs_in_ippool('2B', 10, 'HW');
-CALL p3a_usrs_in_ippool('4B', 10, 'HW');
-CALL p3a_usrs_in_ippool('128C', 10, 'HW');
-CALL p3a_usrs_in_ippool('1B', 43, 'HW');
-CALL p3a_usrs_in_ippool('2B', 40, 'HW');
-CALL p3a_usrs_in_ippool('4B', 40, 'HW');
-CALL p3a_usrs_in_ippool('128C', 40, 'HW');
+CALL p3a_usrs_in_ippool('1B', 15, 'HW');#10'50
+CALL p3a_usrs_in_ippool('4B', 15, 'HW');#9'52
+CALL p3a_usrs_in_ippool('128C', 15, 'HW');#12'09
+CALL p3a_usrs_in_ippool('1B', 44, 'HW');#48'55
+CALL p3a_usrs_in_ippool('4B', 44, 'HW');#44'28
+CALL p3a_usrs_in_ippool('128C', 44, 'HW');#54'37'
+CALL p3a_usrs_in_ippool('1B', 15, 'ZTE');#34'28
+CALL p3a_usrs_in_ippool('4B', 15, 'ZTE');
+CALL p3a_usrs_in_ippool('128C', 15, 'ZTE');
+CALL p3a_usrs_in_ippool('1B', 44, 'ZTE');#27'35
+CALL p3a_usrs_in_ippool('4B', 44, 'ZTE');#14'24
+CALL p3a_usrs_in_ippool('128C', 44, 'ZTE');#53'22
 
 #通过界面输入的参数返回IP段中的用户数
 DROP PROCEDURE IF EXISTS `iptvyw01`.`pusrs_in_ippool_fin`;
