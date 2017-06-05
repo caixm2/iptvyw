@@ -884,7 +884,7 @@ CALL pnoc_ip_split(131072);
 #将厂商IP池和NOCIP池合并入临时表
 DROP PROCEDURE IF EXISTS `iptvyw01`.`pprovider_ip_split`;
 delimiter //
-CREATE PROCEDURE pprovider_ip_split(IN iplen VARCHAR(5), IN dayl INT(3), IN ipl INT, IN plat VARCHAR(5))
+CREATE PROCEDURE pprovider_ip_split(IN strmask VARCHAR(5), IN dayl INT(3), IN intmask INT, IN plat VARCHAR(5))
 BEGIN
   DECLARE pro_end INT DEFAULT 0;
   DECLARE provideripstart VARCHAR(50);
@@ -917,7 +917,7 @@ BEGIN
   #TRUNCATE TABLE `iptvyw01`.`tmp_tusr_in_provider_ippool`;
   #根据字符串的子网掩码查出点分十进制子网掩码
   SELECT netmaskpoint INTO maskpoint FROM `iptvyw01`.`tdic_netmask`
-  WHERE netmaskstr = iplen;
+  WHERE netmaskstr = strmask;
 
   #根据不同平台生成view
   DROP VIEW IF EXISTS viparea;
@@ -938,12 +938,12 @@ BEGIN
         SET ipsplit = 1;
       ELSE
         CALL putil_calc_sip_eip(provideripstart, maskpoint, @startip, @endip);
-        SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(@startip))/ipl);
+        SET ipsplit = ceil((INET_ATON(provideripend) - INET_ATON(@startip))/intmask);
       END IF;
       IF ipsplit = 1 THEN
         INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
         SELECT noc.ipstart, noc.ipend, noc.quju, INET_ATON(provideripstart), INET_ATON(provideripend), 
-            providernodeid, iplen, CONCAT(dayl,''), providerflat
+            providernodeid, strmask, CONCAT(dayl,''), providerflat
           FROM tmp_tnoc_split_ippool noc
           WHERE INET_ATON(provideripstart) >= noc.ipstart
           AND INET_ATON(provideripend) <= noc.ipend;
@@ -952,8 +952,8 @@ BEGIN
           IF a = 1 THEN
             INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
             SELECT noc.ipstart, noc.ipend, noc.quju, 
-              INET_ATON(provideripstart), INET_ATON(@startip) + a*ipl-1, providernodeid,
-              iplen, CONCAT(dayl,''), providerflat
+              INET_ATON(provideripstart), INET_ATON(@startip) + a*intmask-1, providernodeid,
+              strmask, CONCAT(dayl,''), providerflat
             FROM tmp_tnoc_split_ippool noc
             WHERE INET_ATON(provideripstart) >= noc.ipstart
             AND INET_ATON(@endip) <= noc.ipend;
@@ -961,18 +961,18 @@ BEGIN
             INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
             SELECT noc.ipstart, noc.ipend, noc.quju, 
               INET_ATON(@startip) + (a - 1)*@len, INET_ATON(provideripend), providernodeid, 
-              iplen, CONCAT(dayl,''), providerflat
+              strmask, CONCAT(dayl,''), providerflat
             FROM tmp_tnoc_split_ippool noc
-            WHERE (INET_ATON(@startip) + (a - 1)*iplen) >= noc.ipstart
+            WHERE (INET_ATON(@startip) + (a - 1)*intmask) >= noc.ipstart
             AND INET_ATON(provideripend) <= noc.ipend;
           ElSEIF a < ipsplit THEN
             INSERT INTO tmp_tusr_in_provider_ippool(nocipstart, nocipend, nocquju, popipstart, popipend, popid, ipfield, daylen, platform)
             SELECT noc.ipstart, noc.ipend, noc.quju, 
-              INET_ATON(@startip) + (a - 1)*ipl, INET_ATON(@startip) + a*ipl-1, providernodeid,
-              iplen, CONCAT(dayl,''), providerflat
+              INET_ATON(@startip) + (a - 1)*intmask, INET_ATON(@startip) + a*intmask-1, providernodeid,
+              strmask, CONCAT(dayl,''), providerflat
             FROM tmp_tnoc_split_ippool noc
-            WHERE (INET_ATON(@startip) + (a - 1)*ipl) >= noc.ipstart
-            AND (INET_ATON(@startip) + a*ipl-1) <= noc.ipend;
+            WHERE (INET_ATON(@startip) + (a - 1)*intmask) >= noc.ipstart
+            AND (INET_ATON(@startip) + a*intmask-1) <= noc.ipend;
           END IF;
           SET a = a + 1;
         END WHILE;
@@ -985,7 +985,7 @@ BEGIN
 END //
 delimiter ;
 
-CALL pprovider_ip_split('128C',10, 32768, 'HW');
+CALL pprovider_ip_split('128C',28, 32768, 'HW');
 
 #将3a中的用户根据IP地址统计同一IP段内的用户数。
 DROP PROCEDURE IF EXISTS p3a_sum_usrs_in_pool;
@@ -1072,7 +1072,7 @@ BEGIN
 END; //
 delimiter ;
 TRUNCATE TABLE tusrsinippoolnum;
-CALL p3a_usrs_in_ippool('1B', 15, 'HW');#10'50
+CALL p3a_usrs_in_ippool('1B', 28, 'HW');#10'50
 CALL p3a_usrs_in_ippool('4B', 15, 'HW');#9'52
 CALL p3a_usrs_in_ippool('128C', 15, 'HW');#12'09
 CALL p3a_usrs_in_ippool('1B', 44, 'HW');#48'55
