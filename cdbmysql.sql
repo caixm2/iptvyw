@@ -687,73 +687,6 @@ CREATE TABLE `iptvyw01`.`thwDayRptAreaSum` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `idx_thwDayRptAreaSum_id` (`id` ASC));
 
-DROP PROCEDURE IF EXISTS `iptvyw01`.`pdrop_create_t3a_usr`;
-delimiter //
-CREATE PROCEDURE `iptvyw01`.`pdrop_create_t3a_usr`()
-BEGIN
-DROP TABLE IF EXISTS `iptvyw01`.`t3a_usr`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
-  `adslname` VARCHAR(20) NOT NULL  COMMENT '设备编号，用户大AD' ,
-  `loginname` VARCHAR(30) NOT NULL COMMENT 'IPTV账号',
-  `ipaddr` VARCHAR(50)  COMMENT '用户IP地址',
-  `logintime` VARCHAR(20) COMMENT '最后一次登陆时间',
-  `status` VARCHAR(5) COMMENT '账号状态',
-  `platform` VARCHAR(20) COMMENT '对应到平台',
-  `fj_name` VARCHAR(50) COMMENT '分局名字',
-  `quju` VARCHAR(50) COMMENT '区局名字',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
-  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0'
-  );
-
-END; //
-delimiter ;
-#ALTER TABLE t3a_usr ADD PRIMARY KEY(`loginname`);
-CALL iptvyw01.pdrop_create_t3a_usr();
-load data local infile '/home/xknight/django/t3a_usr.csv' 
-replace INTO table t3a_usr character 
-set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
-ignore 1 lines;
-ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_ipaddr(`ipaddr`);
-ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_logintime(`logintime`);
-ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_platform(`platform`);
-
-truncate table t3a_usr;
-load data local infile '/home/xknight/django/t3a_usr.csv' 
-replace INTO table t3a_usr character 
-set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
-ignore 1 lines;
-truncate TABLE t3a_usr;
-load data local infile '/home/caixiaoming/django/t3a_usr.csv' 
-replace INTO table t3a_usr character 
-set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
-ignore 1 lines;
-
-DROP TABLE IF EXISTS `iptvyw01`.`tnoc_usr_ippool`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`tnoc_usr_ippool` (
-  `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
-  `ipend` VARCHAR(50) NOT NULL COMMENT 'ip地址段结束',
-  `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
-  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
-  PRIMARY KEY (`ipstart`));
-truncate table tnoc_usr_ippool;
-load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' 
-replace INTO table tnoc_usr_ippool character 
-set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
-truncate table tnoc_usr_ippool;
-load data local infile '/home/caixiaoming/django/tnoc_usr_ippool.csv' 
-replace INTO table tnoc_usr_ippool character 
-set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
 
 ##计算某一段地址中有多少用户
 ##1. 将NOC总的地址段按C或者B拆分成小地址段存入临时表
@@ -813,6 +746,230 @@ terminated by ','
 enclosed by '"' 
 lines terminated by '\n'
 (`nodename`,`nodeid`,`ipstart`,`ipend`, `epgprovider`);
+
+DROP PROCEDURE IF EXISTS `iptvyw01`.`pdrop_create_t3a_usr`;
+delimiter //
+CREATE PROCEDURE `iptvyw01`.`pdrop_create_t3a_usr`()
+BEGIN
+DROP TABLE IF EXISTS `iptvyw01`.`t3a_usr`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`t3a_usr` (
+  `adslname` VARCHAR(20) NOT NULL  COMMENT '设备编号，用户大AD' ,
+  `loginname` VARCHAR(30) NOT NULL COMMENT 'IPTV账号',
+  `ipaddr` VARCHAR(50)  COMMENT '用户IP地址',
+  `logintime` VARCHAR(20) COMMENT '最后一次登陆时间',
+  `status` VARCHAR(5) COMMENT '账号状态',
+  `platform` VARCHAR(20) COMMENT '对应到平台',
+  `fj_name` VARCHAR(50) COMMENT '分局名字',
+  `quju` VARCHAR(50) COMMENT '区局名字',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0'
+  );
+
+END; //
+delimiter ;
+#ALTER TABLE t3a_usr ADD PRIMARY KEY(`loginname`);
+CALL iptvyw01.pdrop_create_t3a_usr();
+load data local infile '/home/xknight/django/t3a_usr.csv' 
+replace INTO table t3a_usr character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
+ignore 1 lines;
+ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_ipaddr(`ipaddr`);
+ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_logintime(`logintime`);
+ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_platform(`platform`);
+
+truncate table t3a_usr;
+load data local infile '/home/xknight/django/t3a_usr.csv' 
+replace INTO table t3a_usr character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
+ignore 1 lines;
+truncate TABLE t3a_usr;
+load data local infile '/home/caixiaoming/django/t3a_usr.csv' 
+replace INTO table t3a_usr character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
+ignore 1 lines
+(`adslname`, `loginname`, `ipaddr`, `logintime`, `status`, `platform`, 
+  `fj_name`, `quju`)
+;
+
+DROP TABLE IF EXISTS `iptvyw01`.`tnoc_usr_ippool`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tnoc_usr_ippool` (
+  `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
+  `ipend` VARCHAR(50) NOT NULL COMMENT 'ip地址段结束',
+  `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` INT NOT NULL DEFAULT 0 COMMENT '删除标志，0代表正常，1代表删除，默认值0',
+  PRIMARY KEY (`ipstart`));
+truncate table tnoc_usr_ippool;
+load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' 
+replace INTO table tnoc_usr_ippool character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+truncate table tnoc_usr_ippool;
+load data local infile '/home/caixiaoming/django/tnoc_usr_ippool.csv' 
+replace INTO table tnoc_usr_ippool character 
+set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n'
+(`ipstart` ,`ipend`, `quju`);
+
+
+#创建华为平台IP地址段归属POP点信息表
+DROP TABLE IF EXISTS `iptvyw01`.`thwiparea`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`thwiparea` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `3aipid` BIGINT unsigned not null COMMENT '业务管理平台策略ID',
+  `parentid` VARCHAR(50) DEFAULT '0' COMMENT '父id',
+  `broadcast` VARCHAR(50) DEFAULT '1' COMMENT '广播',
+  `ipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'IP地址段开始',
+  `ipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'IP地址段结束',
+  `mask` VARCHAR(50) COMMENT '子网掩码',
+  `status` VARCHAR(50) NOT NULL DEFAULT '0' COMMENT '状态',
+  `nodeid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT '华为节点ID',
+  `nodename` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT '华为节点名称',
+  `areacode` VARCHAR(50)  COMMENT '区域码',
+  `epgprovider` VARCHAR(50) NOT NULL DEFAULT '没有epgprovider' COMMENT '厂商代码',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_thwiparea_id` (`id` ASC))
+  COMMENT '储存华为平台IP地址段归属POP点信息' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+truncate table `iptvyw01`.`thwiparea`;
+load data local infile '/home/caixiaoming/django/thwiparea.csv' 
+replace INTO table thwiparea 
+character set gbk fields 
+terminated by ',' 
+enclosed by '"' 
+lines terminated by '\r\n'
+ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
+  `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
+
+truncate table `iptvyw01`.`thwiparea`;
+load data local infile '/home/xknight/django/thwiparea.csv' 
+replace INTO table thwiparea 
+character set gbk fields 
+terminated by ',' 
+enclosed by '"' 
+lines terminated by '\r\n'
+ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
+  `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
+
+DROP TABLE IF EXISTS `iptvyw01`.`tusrsinippoolnum`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
+  `nocipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'NOCIP地址段结束',
+  `nocquju` VARCHAR(50) NOT NULL DEFAULT '没有nocquju' COMMENT 'NOC IP段所属区局',
+  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
+  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束',
+  `popid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT 'POP节点唯一ID',
+  `popname` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT 'POP节点名称',
+  `usrnum` BIGINT NOT NULL DEFAULT 0 COMMENT '用户数量',
+  `platform` VARCHAR(50) NOT NULL DEFAULT '没有platform' COMMENT '所属平台',
+  `ipfield` VARCHAR(50) NOT NULL DEFAULT '没有ipfield' COMMENT 'IP地址段落',
+  `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
+  COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusrsinippoolnum`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
+  `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
+  `nocipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'NOCIP地址段结束',
+  `nocquju` VARCHAR(50) NOT NULL DEFAULT '没有nocquju' COMMENT 'NOC IP段所属区局',
+  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
+  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束',
+  `popid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT 'POP节点唯一ID',
+  `popname` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT 'POP节点名称',
+  `usrnum` BIGINT NOT NULL DEFAULT 0 COMMENT '用户数量',
+  `platform` VARCHAR(50) NOT NULL DEFAULT '没有platform' COMMENT '所属平台',
+  `ipfield` VARCHAR(50) NOT NULL DEFAULT '没有ipfield' COMMENT 'IP地址段落',
+  `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
+  COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+#输入IP地址和子网掩码计算出开始IP和结束IP地址。
+DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
+delimiter //
+CREATE PROCEDURE putil_calc_sip_eip(IN clientip VARCHAR(20), IN netmask VARCHAR(20), 
+  OUT sip VARCHAR(20), OUT eip VARCHAR(20)
+    )
+BEGIN
+  IF netmask != '' THEN
+    SET sip = INET_NTOA(inet_aton(clientip)&inet_aton(netmask));
+    SET eip = INET_NTOA(inet_aton(sip) + (pow(2,32) - inet_aton(netmask) - 1));
+  #ELSE
+    #@TODO:报出一个异常退出。
+  #  ;
+  END IF;
+END //
+delimiter ;
+CALL putil_calc_sip_eip('12.12.128.148', '255.255.0.0', @sip, @eip);
+SELECT @sip, @eip;
+
+DROP TABLE IF EXISTS `iptvyw01`.`tdic_netmask`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tdic_netmask`(
+  `netmaskstr` VARCHAR(20) NULL COMMENT '子网掩码的字符表示，如1B，2B',
+  `netmaskpoint`  VARCHAR(20) NULL COMMENT '子网掩码的点分十进制表示',
+  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
+  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写',
+  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
+  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
+  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
+  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
+  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
+  PRIMARY KEY (`netmaskstr`),
+  UNIQUE INDEX `idx_tdic_netmask_str` (`netmaskstr` ASC));
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('1B','255.255.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('2B','255.254.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('4B','255.252.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('8B','255.248.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('16B','255.240.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('32B','255.224.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('64B','255.192.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('128B','255.128.0.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('128C','255.255.128.0', NOW(), NOW(), USER(), user());
+INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
+VALUES('64C','255.255.192.0', NOW(), NOW(), USER(), user());
+COMMIT;
+
 
 DROP PROCEDURE IF EXISTS p3a_calciplen;
 delimiter //
@@ -1072,7 +1229,7 @@ BEGIN
 END; //
 delimiter ;
 TRUNCATE TABLE tusrsinippoolnum;
-CALL p3a_usrs_in_ippool('1B', 28, 'HW');#10'50
+CALL p3a_usrs_in_ippool('1B', 15, 'HW');#10'50
 CALL p3a_usrs_in_ippool('4B', 15, 'HW');#9'52
 CALL p3a_usrs_in_ippool('128C', 15, 'HW');#12'09
 CALL p3a_usrs_in_ippool('1B', 44, 'HW');#48'55
@@ -1120,60 +1277,6 @@ END; //
 delimiter ;
 
 CALL pusrs_in_ippool_fin('1B', '31', 'HW','','');
-
-#输入IP地址和子网掩码计算出开始IP和结束IP地址。
-DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
-delimiter //
-CREATE PROCEDURE putil_calc_sip_eip(IN clientip VARCHAR(20), IN netmask VARCHAR(20), 
-  OUT sip VARCHAR(20), OUT eip VARCHAR(20)
-    )
-BEGIN
-  IF netmask != '' THEN
-    SET sip = INET_NTOA(inet_aton(clientip)&inet_aton(netmask));
-    SET eip = INET_NTOA(inet_aton(sip) + (pow(2,32) - inet_aton(netmask) - 1));
-  #ELSE
-    #@TODO:报出一个异常退出。
-  #  ;
-  END IF;
-END //
-delimiter ;
-CALL putil_calc_sip_eip('12.12.128.148', '255.255.0.0', @sip, @eip);
-SELECT @sip, @eip;
-
-DROP TABLE IF EXISTS `iptvyw01`.`tdic_netmask`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`tdic_netmask`(
-  `netmaskstr` VARCHAR(20) NULL COMMENT '子网掩码的字符表示，如1B，2B',
-  `netmaskpoint`  VARCHAR(20) NULL COMMENT '子网掩码的点分十进制表示',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为1后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为1时，需要填写。',
-  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
-  PRIMARY KEY (`netmaskstr`),
-  UNIQUE INDEX `idx_tdic_netmask_str` (`netmaskstr` ASC));
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('1B','255.255.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('2B','255.254.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('4B','255.252.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('8B','255.248.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('16B','255.240.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('32B','255.224.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('64B','255.192.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('128B','255.128.0.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('128C','255.255.128.0', NOW(), NOW(), USER(), user());
-INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
-VALUES('64C','255.255.192.0', NOW(), NOW(), USER(), user());
-COMMIT;
 
 
 DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
@@ -1817,98 +1920,3 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
 ALTER TABLE tfhDayRpt ADD stbdown double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载流量' AFTER youkuper;
 ALTER TABLE tfhDayRpt ADD stbdownper double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载/总流量' AFTER stbdown;
 
-#创建华为平台IP地址段归属POP点信息表
-DROP TABLE IF EXISTS `iptvyw01`.`thwiparea`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`thwiparea` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
-  `3aipid` BIGINT unsigned not null COMMENT '业务管理平台策略ID',
-  `parentid` VARCHAR(50) DEFAULT '0' COMMENT '父id',
-  `broadcast` VARCHAR(50) DEFAULT '1' COMMENT '广播',
-  `ipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'IP地址段开始',
-  `ipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'IP地址段结束',
-  `mask` VARCHAR(50) COMMENT '子网掩码',
-  `status` VARCHAR(50) NOT NULL DEFAULT '0' COMMENT '状态',
-  `nodeid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT '华为节点ID',
-  `nodename` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT '华为节点名称',
-  `areacode` VARCHAR(50)  COMMENT '区域码',
-  `epgprovider` VARCHAR(50) NOT NULL DEFAULT '没有epgprovider' COMMENT '厂商代码',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
-  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `idx_thwiparea_id` (`id` ASC))
-  COMMENT '储存华为平台IP地址段归属POP点信息' ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-truncate table `iptvyw01`.`thwiparea`;
-load data local infile '/home/caixiaoming/django/thwiparea.csv' 
-replace INTO table thwiparea 
-character set gbk fields 
-terminated by ',' 
-enclosed by '"' 
-lines terminated by '\r\n'
-ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
-  `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
-
-truncate table `iptvyw01`.`thwiparea`;
-load data local infile '/home/xknight/django/thwiparea.csv' 
-replace INTO table thwiparea 
-character set gbk fields 
-terminated by ',' 
-enclosed by '"' 
-lines terminated by '\r\n'
-ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
-  `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
-
-DROP TABLE IF EXISTS `iptvyw01`.`tusrsinippoolnum`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
-  `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
-  `nocipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'NOCIP地址段结束',
-  `nocquju` VARCHAR(50) NOT NULL DEFAULT '没有nocquju' COMMENT 'NOC IP段所属区局',
-  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
-  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束',
-  `popid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT 'POP节点唯一ID',
-  `popname` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT 'POP节点名称',
-  `usrnum` BIGINT NOT NULL DEFAULT 0 COMMENT '用户数量',
-  `platform` VARCHAR(50) NOT NULL DEFAULT '没有platform' COMMENT '所属平台',
-  `ipfield` VARCHAR(50) NOT NULL DEFAULT '没有ipfield' COMMENT 'IP地址段落',
-  `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
-  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
-  COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusrsinippoolnum`;
-CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
-  `nocipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT 'NOC IP地址段开始',
-  `nocipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT 'NOCIP地址段结束',
-  `nocquju` VARCHAR(50) NOT NULL DEFAULT '没有nocquju' COMMENT 'NOC IP段所属区局',
-  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
-  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束',
-  `popid` VARCHAR(50) NOT NULL DEFAULT '没有nodeid' COMMENT 'POP节点唯一ID',
-  `popname` VARCHAR(50) NOT NULL DEFAULT '没有nodename' COMMENT 'POP节点名称',
-  `usrnum` BIGINT NOT NULL DEFAULT 0 COMMENT '用户数量',
-  `platform` VARCHAR(50) NOT NULL DEFAULT '没有platform' COMMENT '所属平台',
-  `ipfield` VARCHAR(50) NOT NULL DEFAULT '没有ipfield' COMMENT 'IP地址段落',
-  `daylen` VARCHAR(50) NOT NULL DEFAULT '没有daylen' COMMENT '查询间隔',
-  `createtime` TIMESTAMP NOT NULL DEFAULT current_timestamp COMMENT '创建时间，创建记录后需要填写',
-  `updatetime` DATETIME NULL COMMENT '更新时间，更新记录后需要填写。',
-  `deletetime` DATETIME NULL COMMENT '删除时间，删除标志变为Y后需要填写',
-  `createowner` VARCHAR(30) NULL COMMENT '创建人，创建记录时需要填写',
-  `updateowner` VARCHAR(30) NULL COMMENT '更新人，更新记录后需要填写',
-  `deleteowner` VARCHAR(30) NULL COMMENT '删除人，删除标志变为Y时，需要填写。',
-  `deleteflag` VARCHAR(3) NOT NULL DEFAULT 'N' COMMENT '删除标志，N代表正常，Y代表删除，默认值N',
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
-  COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
