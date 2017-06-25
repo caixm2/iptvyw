@@ -782,6 +782,10 @@ ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_ipaddr(`ipaddr`);
 ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_logintime(`logintime`);
 ALTER TABLE `iptvyw01`.`t3a_usr` ADD INDEX idx_t3a_usr_platform(`platform`);
 
+DROP INDEX idx_t3a_usr_ipaddr ON `iptvyw01`.`t3a_usr`;
+DROP INDEX idx_t3a_usr_logintime ON `iptvyw01`.`t3a_usr`;
+DROP INDEX idx_t3a_usr_platform ON `iptvyw01`.`t3a_usr`;
+
 truncate table t3a_usr;
 load data local infile '/home/xknight/django/t3a_usr.csv' 
 replace INTO table t3a_usr character 
@@ -813,6 +817,7 @@ truncate table tnoc_usr_ippool;
 load data local infile '/home/xknight/django/tnoc_usr_ippool.csv' 
 replace INTO table tnoc_usr_ippool character 
 set gbk fields terminated by ',' enclosed by '"' lines terminated by '\r\n';
+
 truncate table tnoc_usr_ippool;
 load data local infile '/home/caixiaoming/django/tnoc_usr_ippool.csv' 
 replace INTO table tnoc_usr_ippool character 
@@ -866,6 +871,18 @@ lines terminated by '\r\n'
 ignore 1 lines (`3aipid`,`parentid`,`broadcast`,`ipstart`,`ipend`,
   `mask`,`status`,`nodeid`,`nodename`,`areacode`,`epgprovider`);
 
+DROP TABLE IF EXISTS `iptvyw01`.`tmp_tusrs_in_ip`;
+CREATE TABLE IF NOT EXISTS `iptvyw01`.`tmp_tusrs_in_ip`(
+  `usrip` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '用户IP地址',
+  `popipstart` VARCHAR(50) NOT NULL DEFAULT '0.0.0.0' COMMENT '平台IP地址段开始',
+  `popipend` VARCHAR(50) NOT NULL DEFAULT '255.255.255.255' COMMENT '平台IP地址段结束'
+  );
+
+CREATE OR REPLACE VIEW `iptvyw01`.`tmp_vusrscount` AS
+  SELECT popipstart, popipend, count(popipstart) usrnum
+  FROM tmp_tusrs_in_ip
+  GROUP BY popipstart, popipend;
+
 DROP TABLE IF EXISTS `iptvyw01`.`tusrsinippoolnum`;
 CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增长ID' ,
@@ -916,25 +933,6 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tusrsinippoolnum` (
   UNIQUE INDEX `idx_tusrsinippoolnum_id` (`id` ASC))
   COMMENT '储存中兴华为平台IP地址段中的用户数量' ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-#输入IP地址和子网掩码计算出开始IP和结束IP地址。
-DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
-delimiter //
-CREATE PROCEDURE putil_calc_sip_eip(IN clientip VARCHAR(20), IN netmask VARCHAR(20), 
-  OUT sip VARCHAR(20), OUT eip VARCHAR(20)
-    )
-BEGIN
-  IF netmask != '' THEN
-    SET sip = INET_NTOA(inet_aton(clientip)&inet_aton(netmask));
-    SET eip = INET_NTOA(inet_aton(sip) + (pow(2,32) - inet_aton(netmask) - 1));
-  #ELSE
-    #@TODO:报出一个异常退出。
-  #  ;
-  END IF;
-END //
-delimiter ;
-CALL putil_calc_sip_eip('12.12.128.148', '255.255.0.0', @sip, @eip);
-SELECT @sip, @eip;
-
 DROP TABLE IF EXISTS `iptvyw01`.`tdic_netmask`;
 CREATE TABLE IF NOT EXISTS `iptvyw01`.`tdic_netmask`(
   `netmaskstr` VARCHAR(20) NULL COMMENT '子网掩码的字符表示，如1B，2B',
@@ -969,6 +967,26 @@ VALUES('128C','255.255.128.0', NOW(), NOW(), USER(), user());
 INSERT INTO `iptvyw01`.`tdic_netmask` (netmaskstr, netmaskpoint, createtime, updatetime, createowner, updateowner)
 VALUES('64C','255.255.192.0', NOW(), NOW(), USER(), user());
 COMMIT;
+
+
+#输入IP地址和子网掩码计算出开始IP和结束IP地址。
+DROP PROCEDURE IF EXISTS putil_calc_sip_eip;
+delimiter //
+CREATE PROCEDURE putil_calc_sip_eip(IN clientip VARCHAR(20), IN netmask VARCHAR(20), 
+  OUT sip VARCHAR(20), OUT eip VARCHAR(20)
+    )
+BEGIN
+  IF netmask != '' THEN
+    SET sip = INET_NTOA(inet_aton(clientip)&inet_aton(netmask));
+    SET eip = INET_NTOA(inet_aton(sip) + (pow(2,32) - inet_aton(netmask) - 1));
+  #ELSE
+    #@TODO:报出一个异常退出。
+  #  ;
+  END IF;
+END //
+delimiter ;
+CALL putil_calc_sip_eip('12.12.128.148', '255.255.0.0', @sip, @eip);
+SELECT @sip, @eip;
 
 
 DROP PROCEDURE IF EXISTS p3a_calciplen;
@@ -1144,67 +1162,53 @@ delimiter ;
 
 CALL pprovider_ip_split('128C',28, 32768, 'HW');
 
-#将3a中的用户根据IP地址统计同一IP段内的用户数。
-DROP PROCEDURE IF EXISTS p3a_sum_usrs_in_pool;
+#将3a中的用户根据IP地址统计对应到所属的POP点IP段中。
+DROP PROCEDURE IF EXISTS `iptvyw01`.`p3a_sum_usrs_in_pool`;
 delimiter //
-CREATE PROCEDURE p3a_sum_usrs_in_pool(IN dayl INT(3), IN platform VARCHAR(20))
+CREATE PROCEDURE `iptvyw01`.`p3a_sum_usrs_in_pool`(IN dayl INT(3), IN platform VARCHAR(20))
   BEGIN
-    DECLARE usr_ip BIGINT;
-    DECLARE usr_plat VARCHAR(50);
-    DECLARE done INT DEFAULT 0;
-    DECLARE today BIGINT;
-    DECLARE plat VARCHAR(20);
-    DECLARE usr_ip_cur CURSOR FOR 
-      SELECT INET_ATON(trim(ipaddr)) FROM t3a_usr
-      WHERE unix_timestamp(logintime) > today
-      AND  platform like plat;
-    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
-    SET today = unix_timestamp(date_sub(curdate(), interval dayl day));
-    SET plat = CONCAT(platform, '%');
+
+    TRUNCATE TABLE `iptvyw01`.`tmp_tusrs_in_ip`;
+
+    INSERT INTO tmp_tusrs_in_ip(usrip, popipstart, popipend)
+    SELECT INET_ATON(a.ipaddr), t.popipstart, t.popipend
+    FROM t3a_usr a, tmp_tusr_in_provider_ippool t
+    WHERE unix_timestamp(a.logintime) > unix_timestamp(date_sub(curdate(), interval dayl day))
+    AND  a.platform like CONCAT(platform, '%')
+    AND INET_ATON(a.ipaddr) >= t.popipstart
+    AND INET_ATON(a.ipaddr) <= t.popipend;
     
-    OPEN usr_ip_cur;
-    
-    REPEAT
-      FETCH usr_ip_cur INTO usr_ip;
-      IF NOT done THEN
-            #计算用户IP属于某段IP中的数量并更新平台属性。
-            UPDATE tmp_tusr_in_provider_ippool SET usrnum = usrnum + 1
-            WHERE usr_ip >= popipstart AND usr_ip <= popipend;
-      END IF;
-    UNTIL done END REPEAT;
-    COMMIT;
-    CLOSE usr_ip_cur;
   END; //
 delimiter ;
 CALL p3a_sum_usrs_in_pool(4 , 'HW');
 
 
-#
-DROP PROCEDURE IF EXISTS p3a_usrs_in_ippool;
+#将几个表中的数据整合入结果表中，结果表中保存了根据时间长度，IP段，平台3种情况的数据。
+DROP PROCEDURE IF EXISTS `iptvyw01`.`p3a_usrs_in_ippool`;
 delimiter //
-CREATE PROCEDURE p3a_usrs_in_ippool(IN iplen VARCHAR(5), IN dayl INT(3), IN platform VARCHAR(20))
+CREATE PROCEDURE `iptvyw01`.`p3a_usrs_in_ippool`(IN iplen VARCHAR(5), IN dayl INT(3), IN platform VARCHAR(20))
 BEGIN
   
   #根据输入参数，计算分割的IP段长度。根据根据
 
   DECLARE len INT;
-  declare time1 DATETIME;
-  SET time1 = now();
+  #declare time1 DATETIME;
+  #SET time1 = now();
   CALL p3a_calciplen(iplen, @len);
   #@TODO: @len=0报出异常直接退出。 
-  SELECT CONCAT('calciplen ', TIMESTAMPDIFF(SECOND,time1,now()));
+  #SELECT CONCAT('calciplen ', TIMESTAMPDIFF(SECOND,time1,now()));
   #根据IP段长度分割NOC的IP段。
   CALL pnoc_ip_split(@len);
-  SELECT CONCAT('pnoc_ip_split ', TIMESTAMPDIFF(SECOND,time1,now()));
+  #SELECT CONCAT('pnoc_ip_split ', TIMESTAMPDIFF(SECOND,time1,now()));
   #将华为地址段合入NOC表中
   CALL pprovider_ip_split(iplen, dayl , @len, platform);
-  SELECT CONCAT('pprovider_ip_split ', TIMESTAMPDIFF(SECOND,time1,now()));
+  #SELECT CONCAT('pprovider_ip_split ', TIMESTAMPDIFF(SECOND,time1,now()));
 
-  TRUNCATE TABLE `iptvyw01`.`tmp_t3a_usrs_in_ippool`;
-  SELECT CONCAT('TRUNCATE ', TIMESTAMPDIFF(SECOND,time1,now()));
+  #TRUNCATE TABLE `iptvyw01`.`tmp_t3a_usrs_in_ippool`;
+  #SELECT CONCAT('TRUNCATE ', TIMESTAMPDIFF(SECOND,time1,now()));
   #根据用户IP对比各IP地址段，计算出各段IP中的用户人数。
   CALL p3a_sum_usrs_in_pool(dayl , platform);
-  SELECT CONCAT('p3a_sum_usrs_in_pool ', TIMESTAMPDIFF(SECOND,time1,now()));
+  #SELECT CONCAT('p3a_sum_usrs_in_pool ', TIMESTAMPDIFF(SECOND,time1,now()));
 
   #将临时表中的数据导入正式表中
   IF platform = 'HW' THEN
@@ -1212,35 +1216,40 @@ BEGIN
     usrnum, platform, ipfield, daylen, updatetime, createowner, updateowner)
   SELECT INET_NTOA(pro.nocipstart), INET_NTOA(pro.nocipend), pro.nocquju, 
     INET_NTOA(pro.popipstart), INET_NTOA(pro.popipend), pro.popid, sj.jdname, 
-    pro.usrnum , pro.platform, pro.ipfield, pro.daylen, now(), user(), user()
-  FROM tmp_tusr_in_provider_ippool pro, thwsheji sj
-  WHERE pro.popid = sj.popid;
+    vu.usrnum , pro.platform, pro.ipfield, pro.daylen, now(), user(), user()
+  FROM tmp_tusr_in_provider_ippool pro 
+  INNER JOIN thwsheji sj ON pro.popid = sj.popid
+  LEFT JOIN tmp_vusrscount vu ON pro.popipstart = vu.popipstart
+                             AND pro.popipend = vu.popipend;
+
   ELSEIF platform = 'ZTE' THEN
   INSERT INTO tusrsinippoolnum(nocipstart, nocipend, nocquju, popipstart, popipend, popid, popname,
     usrnum, platform, ipfield, daylen, updatetime, createowner, updateowner)
   SELECT INET_NTOA(pro.nocipstart), INET_NTOA(pro.nocipend), pro.nocquju, 
     INET_NTOA(pro.popipstart), INET_NTOA(pro.popipend), pro.popid, sj.nodename, 
-    pro.usrnum , pro.platform, pro.ipfield, pro.daylen, now(), user(), user()
-  FROM tmp_tusr_in_provider_ippool pro, tztesheji sj
-  WHERE pro.popid = sj.nodeid;
+    vu.usrnum , pro.platform, pro.ipfield, pro.daylen, now(), user(), user()
+  FROM tmp_tusr_in_provider_ippool pro
+  INNER JOIN tztesheji sj ON pro.popid = sj.nodeid
+  LEFT JOIN tmp_vusrscount vu ON pro.popipstart = vu.popipstart
+                             AND pro.popipend = vu.popipend;
   END IF;
   COMMIT;
-  SELECT CONCAT('INSERT ', TIMESTAMPDIFF(SECOND,time1,now()));
+  #SELECT CONCAT('INSERT ', TIMESTAMPDIFF(SECOND,time1,now()));
 END; //
 delimiter ;
 TRUNCATE TABLE tusrsinippoolnum;
-CALL p3a_usrs_in_ippool('1B', 15, 'HW');#10'50
-CALL p3a_usrs_in_ippool('4B', 15, 'HW');#9'52
-CALL p3a_usrs_in_ippool('128C', 15, 'HW');#12'09
-CALL p3a_usrs_in_ippool('1B', 44, 'HW');#48'55
-CALL p3a_usrs_in_ippool('4B', 44, 'HW');#44'28
-CALL p3a_usrs_in_ippool('128C', 44, 'HW');#54'37'
-CALL p3a_usrs_in_ippool('1B', 15, 'ZTE');#34'28
-CALL p3a_usrs_in_ippool('4B', 15, 'ZTE');
-CALL p3a_usrs_in_ippool('128C', 15, 'ZTE');
-CALL p3a_usrs_in_ippool('1B', 44, 'ZTE');#27'35
-CALL p3a_usrs_in_ippool('4B', 44, 'ZTE');#14'24
-CALL p3a_usrs_in_ippool('128C', 44, 'ZTE');#53'22
+CALL p3a_usrs_in_ippool('1B', 3, 'HW');#3'45
+CALL p3a_usrs_in_ippool('4B', 3, 'HW');#3'24
+CALL p3a_usrs_in_ippool('128C', 3, 'HW');#6'24
+CALL p3a_usrs_in_ippool('1B', 34, 'HW');#5'31
+CALL p3a_usrs_in_ippool('4B', 34, 'HW');#5'2
+CALL p3a_usrs_in_ippool('128C', 34, 'HW');#9'42
+CALL p3a_usrs_in_ippool('1B', 3, 'ZTE');#2'46
+CALL p3a_usrs_in_ippool('4B', 3, 'ZTE');#1'18
+CALL p3a_usrs_in_ippool('128C', 3, 'ZTE');#4'36
+CALL p3a_usrs_in_ippool('1B', 34, 'ZTE');#3'14
+CALL p3a_usrs_in_ippool('4B', 34, 'ZTE');#1'43
+CALL p3a_usrs_in_ippool('128C', 34, 'ZTE');#6'2
 
 #通过界面输入的参数返回IP段中的用户数
 DROP PROCEDURE IF EXISTS `iptvyw01`.`pusrs_in_ippool_fin`;
@@ -1278,16 +1287,10 @@ delimiter ;
 
 CALL pusrs_in_ippool_fin('1B', '31', 'HW','','');
 
-
-DROP TABLE IF EXISTS `iptvyw01`.`tmp_tnoc_split_ippool`;
-CREATE TEMPORARY TABLE IF NOT EXISTS `iptvyw01`.`tmp_tnoc_split_ippool` (
-  `ipstart` VARCHAR(50) NOT NULL  COMMENT 'ip地址段开始' ,
-  `ipend` VARCHAR(50) NOT NULL COMMENT 'ip地址段结束',
-  `quju` VARCHAR(50)  NOT NULL COMMENT 'IP地址段对应的区局',
-  `usrnum` BIGINT  DEFAULT 0 COMMENT '一段IP中的用户数'
-);
+##完成IP段内用户数的计算。
 
 
+DROP PROCEDURE IF EXISTS phwDayRpt;
 delimiter //
 create procedure phwDayRpt()
 begin
@@ -1415,6 +1418,7 @@ and (unix_timestamp(t1.createtime) > unix_timestamp(date_add(curdate() - day(cur
   t2.popid = '1')
 group by t4.quju, date_format(t2.createtime, '%Y-%m-%d')
 order by t4.quju, date_format(t2.createtime, '%Y-%m-%d');
+##完成烽火平台日报统计
 
 ##中兴平台统计
 ##1.得出各个区局的设计流量。
@@ -1491,6 +1495,7 @@ SELECT sj.quju '区局', sj.avgwidth '平均码流(Mbps)',
 FROM tzteMonRpt sj
 WHERE unix_timestamp(sj.createtime) > unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
 ;
+#完成中兴平台月报统计。
 
 ##华为平台月度统计
 ##1.得出各个区局的设计流量。
@@ -1569,7 +1574,7 @@ SELECT sj.quju '区局', sj.avgwidth '平均码流(Mbps)',
 FROM thwMonRpt sj
 WHERE unix_timestamp(sj.createtime) > unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
 ;
-
+#完成华为平台月度统计。
 
 #烽火平台月度统计
 ##1.得出各个区局的设计流量。
@@ -1720,7 +1725,7 @@ CREATE event IF NOT EXISTS efhDayRpt
   ON COMPLETION PRESERVE ENABLE
   DO call pfhDayRpt();
 
-#计算烽为平台前1个月的最大流量
+#计算烽火平台前1个月的最大流量
 #日期范围>前1个月的1号，<本月的1号
 CREATE OR REPLACE VIEW vfhqujuMonthsum AS
 SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, SUM(dr.peakjdbf) hmsbfsum, 
@@ -1919,4 +1924,4 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
 #烽火日报表中增加2列机顶盒下载数据
 ALTER TABLE tfhDayRpt ADD stbdown double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载流量' AFTER youkuper;
 ALTER TABLE tfhDayRpt ADD stbdownper double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载/总流量' AFTER stbdown;
-
+#完成3个平台日报月报统计
