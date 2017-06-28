@@ -566,7 +566,7 @@ begin
        epg.epggrpmaxnum, epg.epggrpbf, round(epg.epggrpbf/epg.epggrpmaxnum*100,0) as epgper,
        sj.sjhmsbf, hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum AS hmsbf, 
      round((hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum)/sj.sjhmsbf*100,0) AS hmsper,
-       round(sj.sjdbkj/1024/1024, 0) AS dbkj, round(db.dbsykj/1024/1024, 0) AS sykj, round(db.dbsykj/sj.sjdbkj*100, 0) as dbper,
+       round(sj.sjdbkj/1024/1024, 0) AS dbkj, round((sj.sjdbkj-db.dbsykj)/1024/1024, 0) AS sykj, round((sj.sjdbkj-db.dbsykj)/sj.sjdbkj*100, 0) as dbper,
        NOW(), NOW(), USER(), USER()
 from tztesheji sj 
 left join  tztehmsbf hms
@@ -589,7 +589,7 @@ select sj.clustername, sj.clusterid, count(sj.nodename) as countsum, ROUND(sum(h
        sum(epg.epggrpmaxnum), sum(epg.epggrpbf), round(sum(epg.epggrpbf)/sum(epg.epggrpmaxnum)*100,0) as epgper,
        sum(sj.sjhmsbf), sum(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum) AS hmsbf, 
      round(sum(hms.livenum + hms.vodnum + hms.tvodnum + hms.tstvnum)/sum(sj.sjhmsbf)*100,0) AS hmsper,
-       round(sum(sj.sjdbkj)/1024/1024, 0) AS dbkjsum, round(sum(db.dbsykj)/1024/1024, 0) AS sykjsum, round(sum(db.dbsykj)/sum(sj.sjdbkj)*100, 0) as dbper
+       round(sum(sj.sjdbkj)/1024/1024, 0) AS dbkjsum, round((sum(sj.sjdbkj)-sum(db.dbsykj))/1024/1024, 0) AS sykjsum, round((sum(sj.sjdbkj)-sum(db.dbsykj))/sum(sj.sjdbkj)*100, 0) as dbper
        ,NOW(), NOW(), USER(), USER()
 from tztesheji sj 
 left join  tztehmsbf hms
