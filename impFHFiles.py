@@ -92,7 +92,7 @@ fhpop += " WHERE sj.nodeCname <> '高生节点'"
 fhpop += " AND    (unix_timestamp(hms.createtime) > unix_timestamp(current_date()) or hms.createtime is null)"
 fhpop += " AND    (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)"
 fhpop += " GROUP BY sj.nodeCname"
-fhpop += " ORDER BY sj.nodeCname;"
+fhpop += " ORDER BY substring_index('烽火汇总',sj.nodeCname,1), sj.nodeCname;"
 
 epgbf = "SELECT epgsj.epgname, epgsj.epgsjbf, epgsj.epgip,epgbf.epgmaxbf, ROUND(epgbf.epgmaxbf/epgsj.epgsjbf*100,0)"
 epgbf += " FROM tfhepgsheji epgsj, tfhepgbf epgbf"

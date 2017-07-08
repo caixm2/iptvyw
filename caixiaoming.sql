@@ -539,9 +539,15 @@ delete from thwethTraffic
 where unix_timestamp(createtime) > unix_timestamp(current_date());
 delete from thwtongji
 where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from thwDayRpt
+where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from thwDayRptAreaSum
+where unix_timestamp(createtime) > unix_timestamp(current_date());
 COMMIT;
 #删除烽火平台当天数据
 delete from tfhhmsbf where unix_timestamp(createtime) > unix_timestamp(current_date()) ;
 delete from tfhepgbf where unix_timestamp(createtime) > unix_timestamp(current_date());
 delete from tfhdbspace where unix_timestamp(createtime) > unix_timestamp(current_date());
+delete from tfhDayRpt
+where unix_timestamp(createtime) > unix_timestamp(current_date());
 COMMIT;

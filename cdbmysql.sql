@@ -1594,16 +1594,6 @@ WHERE nodeid  != '23120600'
 GROUP BY quju
 ORDER BY substring_index('浦东,南汇',quju,1); 
 
-#根据烽火日报按天汇总每个区的实际流量
-CREATE OR REPLACE VIEW vfhqujuMonthSum AS
-SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, 
-       SUM(dr.peakjdbf) hmsbfsum, SUM(dr.peakdbkj) dbkjsum
-FROM tfhsheji sj, tfhDayRpt dr
-WHERE sj.nodeid = dr.nodeid
-#AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
-#AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
-GROUP BY DATE_FORMAT(dr.createtime, '%Y%m%d'), dr.quju
-;
 
 drop table IF EXISTS `iptvyw01`.`tfhDayRpt`;
 CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhDayRpt` (
@@ -1713,7 +1703,7 @@ SELECT sj.quju, sj.nodeCname, sj.nodeid,
  AND    (unix_timestamp(hms.createtime) > unix_timestamp(current_date()) or hms.createtime is null)
  AND    (unix_timestamp(db.createtime) > unix_timestamp(current_date()) or db.createtime is null)
  GROUP BY sj.nodeCname
- ORDER BY sj.nodeCname;
+ ORDER BY substring_index('烽火汇总',sj.nodeCname,1), sj.nodeCname;
 COMMIT;
 END //
 delimiter ;
@@ -1739,6 +1729,18 @@ AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curd
 AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
 GROUP BY dr.quju, DATE_FORMAT(dr.createtime, '%Y%m%d')
 ;
+
+#根据烽火日报按天汇总每个区的实际流量
+CREATE OR REPLACE VIEW vfhqujuMonthSum AS
+SELECT sj.quju, dr.createtime, SUM(dr.peakjdll) djllsum, 
+       SUM(dr.peakjdbf) hmsbfsum, SUM(dr.peakdbkj) dbkjsum
+FROM tfhsheji sj, tfhDayRpt dr
+WHERE sj.nodeid = dr.nodeid
+#AND unix_timestamp(dr.createtime) > unix_timestamp(date_add(curdate() - day(curdate()) + 1, interval -1 month)) 
+#AND unix_timestamp(dr.createtime) < unix_timestamp(date_add(curdate(), interval - day(curdate()) + 1 day))
+GROUP BY DATE_FORMAT(dr.createtime, '%Y%m%d'), dr.quju
+;
+
 
 CREATE OR REPLACE VIEW vfhqujuMonthmax AS
 SELECT quju, ROUND(MAX(djllsum), 0) djllmax, MAX(hmsbfsum) hmsbfmax, MAX(dbkjsum) dbkjmax,
@@ -1925,3 +1927,11 @@ CREATE TABLE IF NOT EXISTS `iptvyw01`.`tfhMonRpt` (
 ALTER TABLE tfhDayRpt ADD stbdown double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载流量' AFTER youkuper;
 ALTER TABLE tfhDayRpt ADD stbdownper double UNSIGNED NOT NULL DEFAULT 0 COMMENT '机顶盒下载/总流量' AFTER stbdown;
 #完成3个平台日报月报统计
+
+
+#2017-7-8
+#烽火设计表中添加一列汇总数据。
+INSERT INTO tfhsheji
+(nodearea, quju, nodeCname, nodeEname, nodeid, sjkyll, sjjdll, sjjdbf, sjdbkj, createtime, createowner)
+VALUES ('上海烽火','上海烽火','烽火汇总','spidAll','01','120000','150000','18750','1440',NOW(),USER());
+COMMIT;
